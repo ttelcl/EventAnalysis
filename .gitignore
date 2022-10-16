@@ -1,0 +1,36 @@
+# Mostly copied from my standard .hgignore
+Generated/*.cs
+packages/
+*.nupkg
+*.suo
+*.user
+bin/
+obj/
+lib/
+_*/
+Backup/
+UpgradeLog.htm
+TestResults/
+*.psess
+*.vsp
+*~
+*.orig
+.vs/
+.hg/
+data/
+test_*/
+local.settings.json
+
+*.bak
+*.tag
+*.touch
+### VisualStudioCode ###
+.vscode/      # Maybe .vscode/**/* instead - see comments
+# !.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+### VisualStudioCode Patch ###
+# Ignore all local history of files
+**/.history
