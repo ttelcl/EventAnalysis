@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json;
@@ -23,10 +24,34 @@ namespace Lcl.EventLog.Jobs
     /// </summary>
     public EventJobConfig(
       string name,
-      EventLogSource source)
+      string log,
+      bool admin)
     {
       Name = name;
-      Source = source;
+      Log = log;
+      Admin = admin;
+      ThrowIfInvalidJobName(Name);
+    }
+
+    /// <summary>
+    /// Returns true if the provided name is valid as job name.
+    /// </summary>
+    public static bool IsValidJobName(string name)
+    {
+      var rgx = @"[a-z][a-z0-9]*([-_][a-z0-9]+)*";
+      return Regex.IsMatch(name, rgx, RegexOptions.IgnoreCase);
+    }
+
+    /// <summary>
+    /// Throw an InvalidOperationException if the argument is not a valid job name
+    /// </summary>
+    public static void ThrowIfInvalidJobName(string name)
+    {
+      if(!IsValidJobName(name))
+      {
+        throw new InvalidOperationException(
+          $"Not a valid job name: '{name}'");
+      }
     }
 
     /// <summary>
@@ -36,48 +61,16 @@ namespace Lcl.EventLog.Jobs
     public string Name { get; }
 
     /// <summary>
-    /// The event source
+    /// The name of the event log to import from
     /// </summary>
-    [JsonProperty("source")]
-    public EventLogSource Source { get; }
+    [JsonProperty("log")]
+    public string Log { get; }
 
     /// <summary>
-    /// Inner object specifying the event source
+    /// Whether accessing the underlying event log requires
+    /// admin privileges
     /// </summary>
-    public class EventLogSource
-    {
-      private List<int> _events;
-
-      /// <summary>
-      /// Create a new EventJobConfig.Source
-      /// </summary>
-      public EventLogSource(string log, IEnumerable<int>? events = null)
-      {
-        _events = events == null ? new List<int>() : new List<int>(events);
-        Events = _events.AsReadOnly();
-        Log = log;
-      }
-
-      /// <summary>
-      /// The name of the event log to import from
-      /// </summary>
-      [JsonProperty("log")]
-      public string Log { get; }
-
-      /// <summary>
-      /// The event types to import, or an empty list to import all
-      /// </summary>
-      [JsonProperty("events")]
-      public IReadOnlyList<int> Events { get; }
-
-      /// <summary>
-      /// Determines if Events should be serialized (it is not serialized when empty)
-      /// </summary>
-      public bool ShouldSerializeEvents()
-      {
-        return Events.Any();
-      }
-    }
-
+    [JsonProperty("admin")]
+    public bool Admin { get; }
   }
 }

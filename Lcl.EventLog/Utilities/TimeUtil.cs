@@ -87,7 +87,7 @@ namespace Lcl.EventLog.Utilities
     /// </summary>
     /// <param name="dt">
     /// The time stamp. The conversion uses whatever timezone is implied in
-    /// the argument's Kind.
+    /// the argument's Kind (i.e. the kind is ignored).
     /// </param>
     /// <param name="full">
     /// use the longer format
@@ -100,10 +100,42 @@ namespace Lcl.EventLog.Utilities
     }
 
     /// <summary>
+    /// Convert a timestamp to a string in "yyyyMMdd-HHmmss-fffffff"
+    /// or "yyyyMMdd-HHmmss" form
+    /// </summary>
+    /// <param name="dto">
+    /// The time stamp. The conversion ignores the timezone.
+    /// </param>
+    /// <param name="full">
+    /// use the longer format
+    /// </param>
+    public static string ToTimeString(this DateTimeOffset dto, bool full = true)
+    {
+      return dto.ToString(
+        full ? "yyyyMMdd-HHmmss-fffffff" : "yyyyMMdd-HHmmss",
+        CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// Convert a timestamp in epoch ticks UTC form to a string in
+    /// "yyyyMMdd-HHmmss-fffffff" or "yyyyMMdd-HHmmss" form
+    /// </summary>
+    /// <param name="epochTicks">
+    /// The time stamp. Always interpreted in UTC.
+    /// </param>
+    /// <param name="full">
+    /// use the longer format
+    /// </param>
+    public static string ToTimeString(this long epochTicks, bool full=true)
+    {
+      return epochTicks.EpochDateTime().ToTimeString(full);
+    }
+
+    /// <summary>
     /// Parse a datetime string in "yyyyMMdd-HHmmss-fffffff"
     /// or "yyyyMMdd-HHmmss" form. The Kind has to be specified explicitly. 
     /// </summary>
-    public static DateTime FromTimeString(this string txt, DateTimeKind kind)
+    public static DateTime ParseDateTime(this string txt, DateTimeKind kind)
     {
       var rgx = @"(\d{8}-\d{6})(-\d{7})?";
       var m = Regex.Match(txt, rgx);
@@ -119,6 +151,73 @@ namespace Lcl.EventLog.Utilities
         DateTimeStyles.None);
       // Supporting .net standard 2.0 means we don't have SpecifyKind()
       return new DateTime(dt.Ticks, kind);
+    }
+
+    /// <summary>
+    /// Parse a datetime offset string in "yyyyMMdd-HHmmss-fffffff"
+    /// or "yyyyMMdd-HHmmss" form. 
+    /// This overload returns a DateTimeOffset in UTC or local time. 
+    /// </summary>
+    /// <param name="txt">
+    /// The text to parse
+    /// </param>
+    /// <param name="kind">
+    /// Indicates what timezone to imply (local or UTC)
+    /// </param>
+    public static DateTimeOffset ParseDto(this string txt, DateTimeKind kind)
+    {
+      var rgx = @"(\d{8}-\d{6})(-\d{7})?";
+      var m = Regex.Match(txt, rgx);
+      if(!m.Success)
+      {
+        throw new ArgumentException(
+          $"Unsupported time string format");
+      }
+      var dt = DateTime.ParseExact(
+        txt,
+        new[] { "yyyyMMdd-HHmmss-fffffff", "yyyyMMdd-HHmmss" },
+        CultureInfo.InvariantCulture,
+        DateTimeStyles.None);
+      // Supporting .net standard 2.0 means we don't have SpecifyKind()
+      return new DateTime(dt.Ticks, kind);
+    }
+
+    /// <summary>
+    /// Parse a datetime offset string in "yyyyMMdd-HHmmss-fffffff"
+    /// or "yyyyMMdd-HHmmss" form. 
+    /// This overload returns a DateTimeOffset with the explicitly given time offset. 
+    /// </summary>
+    /// <param name="txt">
+    /// The text to parse
+    /// </param>
+    /// <param name="offset">
+    /// The result's time zone offset
+    /// </param>
+    public static DateTimeOffset ParseDto(this string txt, TimeSpan offset)
+    {
+      var rgx = @"(\d{8}-\d{6})(-\d{7})?";
+      var m = Regex.Match(txt, rgx);
+      if(!m.Success)
+      {
+        throw new ArgumentException(
+          $"Unsupported time string format");
+      }
+      var dt = DateTime.ParseExact(
+        txt,
+        new[] { "yyyyMMdd-HHmmss-fffffff", "yyyyMMdd-HHmmss" },
+        CultureInfo.InvariantCulture,
+        DateTimeStyles.None);
+      return new DateTimeOffset(dt.Ticks, offset);
+    }
+
+    /// <summary>
+    /// Parse a datetime offset string in "yyyyMMdd-HHmmss-fffffff"
+    /// or "yyyyMMdd-HHmmss" form, interpreted as an UTC time.
+    /// Returns the number of ticks in the result since the unix epoch.
+    /// </summary>
+    public static long ParseEpochTicks(this string txt)
+    {
+      return txt.ParseDateTime(DateTimeKind.Utc).TicksSinceEpoch();
     }
 
   }
