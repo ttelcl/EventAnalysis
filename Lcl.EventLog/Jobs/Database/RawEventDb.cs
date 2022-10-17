@@ -24,7 +24,7 @@ namespace Lcl.EventLog.Jobs.Database
     /// <summary>
     /// Create a new RawEventDb
     /// </summary>
-    public RawEventDb(string fileName, bool allowWrite, bool allowCreate=false)
+    public RawEventDb(string fileName, bool allowWrite, bool allowCreate = false)
     {
       FileName = Path.GetFullPath(fileName);
       AllowWrite = allowWrite;
@@ -49,7 +49,7 @@ namespace Lcl.EventLog.Jobs.Database
     /// <summary>
     /// Allow opening the DB in DDL mode
     /// </summary>
-    public bool AllowCreate { get; }  
+    public bool AllowCreate { get; }
 
     /// <summary>
     /// Open a new database connection. This may create the database file if it didn't
@@ -183,7 +183,7 @@ FROM EventState");
         return Connection.Execute(@"
 INSERT OR REPLACE INTO EventState (eid, minversion, enabled)
   VALUES (@Eid, @MinVersion, @Enabled)
-", new { Eid = eid, MinVersion = minversion, Enabled = enabled ? 1 : 0});
+", new { Eid = eid, MinVersion = minversion, Enabled = enabled ? 1 : 0 });
       }
 
       /// <summary>
@@ -231,7 +231,93 @@ ORDER BY eid, task"); // need to order explicitly since PK is not "INTEGER PRIMA
 INSERT INTO Tasks (eid, task, description)
   VALUES (@Eid, @Task, @Description)
   ON CONFLICT(eid, task) DO UPDATE SET description=excluded.description
-", new {Eid = eid, Task = task, Description = description});
+", new { Eid = eid, Task = task, Description = description });
+      }
+
+      /// <summary>
+      /// Read events, filtered by the given query
+      /// </summary>
+      /// <param name="ridMin">
+      /// Minimum Record ID to match
+      /// </param>
+      /// <param name="ridMax">
+      /// Maximum Record ID to match
+      /// </param>
+      /// <param name="eid">
+      /// The event ID to match (or all event IDs)
+      /// </param>
+      /// <param name="tMin">
+      /// The minimum time stamp to match (in epoch-ticks)
+      /// </param>
+      /// <param name="tMax">
+      /// The maximum time stamp to match (in epoch-ticks)
+      /// </param>
+      /// <returns>
+      /// The matching records
+      /// </returns>
+      public IEnumerable<EventRow> ReadEvents(
+        long? ridMin = null,
+        long? ridMax = null,
+        int? eid = null,
+        long? tMin = null,
+        long? tMax = null)
+      {
+        var q = @"
+SELECT rid, eid, task, ts, ver, xml
+FROM Events";
+        var conditions = new List<string>();
+        if(ridMin != null)
+        {
+          conditions.Add("rid >= @RidMin");
+        }
+        if(ridMax != null)
+        {
+          conditions.Add("rid <= @RidMax");
+        }
+        if(eid != null)
+        {
+          conditions.Add("eid = @Eid");
+        }
+        if(tMin != null)
+        {
+          conditions.Add("ts >= @TMin");
+        }
+        if(tMax != null)
+        {
+          conditions.Add("ts <= @TMax");
+        }
+        if(conditions.Count > 0)
+        {
+          var condition = @"
+WHERE " + String.Join(@"
+  AND ", conditions);
+          q = q + condition;
+        }
+        return Connection.Query<EventRow>(q, new {
+          RidMin = ridMin,
+          RidMax = ridMax,
+          Eid = eid,
+          TMin = tMin,
+          TMax = tMax
+        });
+      }
+
+      /// <summary>
+      /// Insert a new event record in the Events table. Does not affect
+      /// the Tasks and EventState tables.
+      /// </summary>
+      public int PutEvent(long rid, int eid, int task, long ts, int ver, string xml)
+      {
+        return Connection.Execute(@"
+INSERT OR REPLACE INTO Events (rid, eid, task, ts, ver, xml)
+VALUES (@Rid, @Eid, @Task, @Ts, @Ver, @Xml)", new {
+          Rid = rid,
+          Eid = eid,
+          Task = task,
+          Ts = ts,
+          Ver = ver,
+          Xml = xml
+        });
       }
 
       private void InitTables()

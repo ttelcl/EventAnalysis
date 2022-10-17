@@ -154,6 +154,39 @@ namespace UnitTest.Lcl.EventLog
       }
     }
 
+    [Fact]
+    public void EventsTableTest()
+    {
+      var dbName = Path.GetFullPath("events.sqlite3");
+      _output.WriteLine($"DB file is {dbName}");
+      if(File.Exists(dbName))
+      {
+        _output.WriteLine($"Deleting existing DB");
+        File.Delete(dbName);
+      }
+      Assert.False(File.Exists(dbName));
+      var redb = new RawEventDb(dbName, true, true);
+      using(var db = redb.Open(true, true))
+      {
+        db.DbInit();
+      }
+      Assert.True(File.Exists(dbName));
+      using(var db = redb.Open(true))
+      {
+        var events = db.ReadEvents().ToList();
+        Assert.Empty(events);
+
+        events = db.ReadEvents(ridMin:0, eid:1).ToList();
+        Assert.Empty(events);
+
+        events = db.ReadEvents(eid: 1).ToList();
+        Assert.Empty(events);
+
+        // TODO: actually insert events and query them
+      }
+
+    }
+
 
   }
 }
