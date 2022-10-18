@@ -189,6 +189,17 @@ namespace Lcl.EventLog.Jobs.Database
         var ers = new EventRecordSource(eventLogName);
         return PutEvents(ers.ReadRecords(aboveRid), cap, ConflictMode.Default);
       }
+      
+      /// <summary>
+      /// Return the number of events for each unique (eventId, taskId) combination
+      /// </summary>
+      public IReadOnlyList<(int EventId, int TaskId, int Total)> EventTaskCounts()
+      {
+        return Connection.Query<(int EventId, int TaskId, int Total)>(@"
+SELECT eid AS EventId, task AS TaskId, Count(*) AS Total
+FROM Events
+GROUP BY eid, task").ToList().AsReadOnly();
+      }
 
       /// <summary>
       /// Insert a batch of records into the database

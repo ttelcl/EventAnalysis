@@ -113,6 +113,11 @@ namespace UnitTest.Lcl.EventLog
         Assert.Empty(states);
         var n = fillingJob.UpdateDb(db);
         _output.WriteLine($"Inserted {n} records");
+        var counts = db.EventTaskCounts();
+        foreach(var c in counts)
+        {
+          _output.WriteLine($"({c.EventId},{c.TaskId}) : {c.Total}");
+        }
       }
     }
 

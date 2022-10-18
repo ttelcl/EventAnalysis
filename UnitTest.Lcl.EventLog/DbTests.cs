@@ -378,6 +378,13 @@ namespace UnitTest.Lcl.EventLog
           var t = e.TimeStamp.ToString("o");
           _output.WriteLine($"{e.RecordId}: ({e.EventId},{e.TaskId}) {t}");
         }
+
+        _output.WriteLine("Event+Task counts:");
+        var etcs = db.EventTaskCounts();
+        foreach(var etc in etcs)
+        {
+          _output.WriteLine($"({etc.EventId},{etc.TaskId}) : {etc.Total}");
+        }
       }
     }
 
