@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -15,7 +16,6 @@ using Xunit.Abstractions;
 
 using Lcl.EventLog.Jobs.Database;
 using Lcl.EventLog.Utilities;
-using System.Diagnostics.Eventing.Reader;
 
 namespace UnitTest.Lcl.EventLog
 {
@@ -425,7 +425,7 @@ namespace UnitTest.Lcl.EventLog
         var elq = new EventLogQuery(logName, PathType.LogName, query);
 
         _output.WriteLine($"Reading the first 100 available event records");
-        var n = db.PutEvents(ReadRecords(elq).Take(100), ConflictMode.Default);
+        var n = db.PutEvents(ReadRecords(elq), 100, ConflictMode.Default);
         _output.WriteLine($"Stored {n} event records");
 
         maxrid = db.MaxRecordId();
@@ -437,7 +437,7 @@ namespace UnitTest.Lcl.EventLog
         elq = new EventLogQuery(logName, PathType.LogName, query);
 
         _output.WriteLine($"Reading the next 700 available event records");
-        n = db.PutEvents(ReadRecords(elq).Take(700), ConflictMode.Default); // test: would throw on failure
+        n = db.PutEvents(ReadRecords(elq), 700, ConflictMode.Default); // test: would throw on failure
         _output.WriteLine($"Stored {n} event records");
 
         maxrid = db.MaxRecordId();
@@ -449,7 +449,7 @@ namespace UnitTest.Lcl.EventLog
         elq = new EventLogQuery(logName, PathType.LogName, query);
 
         _output.WriteLine($"Reading 700 more event records");
-        n = db.PutEvents(ReadRecords(elq).Take(700), ConflictMode.Default); // test: would throw on failure
+        n = db.PutEvents(ReadRecords(elq), 700, ConflictMode.Default); // test: would throw on failure
         _output.WriteLine($"Stored {n} event records");
 
         maxrid = db.MaxRecordId();
@@ -461,7 +461,7 @@ namespace UnitTest.Lcl.EventLog
         elq = new EventLogQuery(logName, PathType.LogName, query);
 
         _output.WriteLine($"Reading 700 more event records");
-        n = db.PutEvents(ReadRecords(elq).Take(700), ConflictMode.Default); // test: would throw on failure
+        n = db.PutEvents(ReadRecords(elq), 700, ConflictMode.Default); // test: would throw on failure
         _output.WriteLine($"Stored {n} event records");
 
         Assert.Equal(0, n);

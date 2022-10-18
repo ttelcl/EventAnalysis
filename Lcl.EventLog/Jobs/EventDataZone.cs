@@ -31,20 +31,29 @@ namespace Lcl.EventLog.Jobs
     /// The machine name to determine the data zone root folder.
     /// Defaults to the current machine name.
     /// </param>
+    /// <param name="baseFolder">
+    /// Overrides the base folder to a nonstandard location
+    /// </param>
     public EventDataZone(
       bool readOnly,
-      string? machine = null)
+      string? machine = null,
+      string? baseFolder = null)
     {
       if(String.IsNullOrEmpty(machine))
       {
         machine = Environment.MachineName;
       }
       ReadOnly = readOnly;
-      RootFolder = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-        "Yoco",
-        "EventAnalysis",
-        machine);
+      RootFolder =
+        String.IsNullOrEmpty(baseFolder)
+        ? Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "Yoco",
+            "EventAnalysis",
+            machine)
+        : Path.Combine(
+            Path.GetFullPath(baseFolder),
+            machine);
       if(!ReadOnly && !Directory.Exists(RootFolder))
       {
         Directory.CreateDirectory(RootFolder);
@@ -129,6 +138,21 @@ namespace Lcl.EventLog.Jobs
       {
         throw new FileNotFoundException(
           $"Unknown job: '{name}'", cfgfile);
+      }
+      var cfg = ReadConfigFile(cfgfile);
+      return new EventJob(this, cfg);
+    }
+
+    /// <summary>
+    /// Read a job configuration and wrap it in an EventJob object.
+    /// Returns null if not found
+    /// </summary>
+    public EventJob? TryOpenJob(string name)
+    {
+      var cfgfile = JobConfigFile(name);
+      if(!File.Exists(cfgfile))
+      {
+        return null;
       }
       var cfg = ReadConfigFile(cfgfile);
       return new EventJob(this, cfg);

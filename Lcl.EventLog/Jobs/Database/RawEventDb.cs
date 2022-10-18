@@ -169,10 +169,44 @@ namespace Lcl.EventLog.Jobs.Database
       }
 
       /// <summary>
+      /// Update the database from the named event log.
+      /// </summary>
+      /// <param name="eventLogName">
+      /// The name of the event log
+      /// </param>
+      /// <param name="cap">
+      /// The maximum number of new records to import
+      /// </param>
+      /// <returns>
+      /// The number of records inserted. If this is equal to <paramref name="cap"/>
+      /// there may be more records to import
+      /// </returns>
+      public int UpdateFrom(
+        string eventLogName,
+        int cap = Int32.MaxValue)
+      {
+        var aboveRid = MaxRecordId();
+        var ers = new EventRecordSource(eventLogName);
+        return PutEvents(ers.ReadRecords(aboveRid), cap, ConflictMode.Default);
+      }
+
+      /// <summary>
       /// Insert a batch of records into the database
       /// </summary>
+      /// <param name="records">
+      /// The sequence of records to import
+      /// </param>
+      /// <param name="cap">
+      /// The maximum number of records to import
+      /// (potentially leaving part of the input sequence
+      /// unhandled)
+      /// </param>
+      /// <param name="conflictHandling">
+      /// Determines how handle insertion conflicts
+      /// </param>
       public int PutEvents(
         IEnumerable<EventLogRecord> records,
+        int cap = Int32.MaxValue,
         ConflictMode conflictHandling = ConflictMode.Default)
       {
         var n = 0;
@@ -184,6 +218,10 @@ namespace Lcl.EventLog.Jobs.Database
             if(eij.ProcessEvent(record))
             {
               n++;
+              if(n >= cap)
+              {
+                break;
+              }
             }
           }
           eij.Commit(true);
