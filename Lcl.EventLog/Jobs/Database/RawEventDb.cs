@@ -14,6 +14,8 @@ using Microsoft.Data.Sqlite;
 
 using Dapper;
 
+using Lcl.EventLog.Utilities;
+
 namespace Lcl.EventLog.Jobs.Database
 {
   /// <summary>
@@ -235,7 +237,10 @@ INSERT INTO Tasks (eid, task, description)
       }
 
       /// <summary>
-      /// Read events, filtered by the given query
+      /// Read events, filtered by the given query parameters.
+      /// Timestamps are specified in Epoch Ticks (use TimeUtil for conversions)
+      /// Use <see cref="ReadEvents"/> for the equivalent that uses
+      /// DateTime instead.
       /// </summary>
       /// <param name="ridMin">
       /// Minimum Record ID to match
@@ -255,7 +260,13 @@ INSERT INTO Tasks (eid, task, description)
       /// <returns>
       /// The matching records
       /// </returns>
-      public IEnumerable<EventRow> ReadEvents(
+      /// <remarks>
+      /// <para>
+      /// This method is named ReadEventsTicks instead of ReadEvents to resolve
+      /// overload ambiguity when no time stamp limits are specified.
+      /// </para>
+      /// </remarks>
+      public IEnumerable<EventRow> ReadEventsTicks(
         long? ridMin = null,
         long? ridMax = null,
         int? eid = null,
@@ -303,13 +314,50 @@ WHERE " + String.Join(@"
       }
 
       /// <summary>
-      /// Insert a new event record in the Events table. Does not affect
-      /// the Tasks and EventState tables.
+      /// Read events, filtered by the given query parameters.
+      /// Timestamps are specified as DateTime, with a Kind of Utc or Local.
+      /// Use <see cref="ReadEventsTicks"/> for the equivalent that uses
+      /// epoch ticks instead.
       /// </summary>
-      public int PutEvent(long rid, int eid, int task, long ts, int ver, string xml)
+      /// <param name="ridMin">
+      /// Minimum Record ID to match
+      /// </param>
+      /// <param name="ridMax">
+      /// Maximum Record ID to match
+      /// </param>
+      /// <param name="eid">
+      /// The event ID to match (or all event IDs)
+      /// </param>
+      /// <param name="utcMin">
+      /// The minimum time stamp to match. The Kind must be UTC or Local, not Unspecified.
+      /// </param>
+      /// <param name="utcMax">
+      /// The maximum time stamp to match. The Kind must be UTC or Local, not Unspecified.
+      /// </param>
+      /// <returns>
+      /// The matching records
+      /// </returns>
+      public IEnumerable<EventRow> ReadEvents(
+        long? ridMin = null,
+        long? ridMax = null,
+        int? eid = null,
+        DateTime? utcMin = null,
+        DateTime? utcMax = null)
+      {
+        long? tMin = utcMin.HasValue ? TimeUtil.TicksSinceEpoch(utcMin.Value) : null;
+        long? tMax = utcMax.HasValue ? TimeUtil.TicksSinceEpoch(utcMax.Value) : null;
+        return ReadEventsTicks(ridMin, ridMax, eid, tMin, tMax);
+      }
+
+      /// <summary>
+      /// Insert a new event record in the Events table.
+      /// Does not affect the Tasks and EventState tables.
+      /// Normally you should call this inside a transaction only.
+      /// </summary>
+      public int PutEvent(long rid, int eid, int task, long ts, int ver, string xml, bool overwrite=false)
       {
         return Connection.Execute(@"
-INSERT OR REPLACE INTO Events (rid, eid, task, ts, ver, xml)
+INSERT "+ (overwrite ? "OR REPLACE " : "") + @"INTO Events (rid, eid, task, ts, ver, xml)
 VALUES (@Rid, @Eid, @Task, @Ts, @Ver, @Xml)", new {
           Rid = rid,
           Eid = eid,
@@ -318,6 +366,17 @@ VALUES (@Rid, @Eid, @Task, @Ts, @Ver, @Xml)", new {
           Ver = ver,
           Xml = xml
         });
+      }
+
+      /// <summary>
+      /// Insert a new event record in the Events table.
+      /// Does not affect the Tasks and EventState tables.
+      /// Normally you should call this inside a transaction only.
+      /// </summary>
+      public int PutEvent(long rid, int eid, int task, DateTime utc, int ver, string xml, bool overwrite = false)
+      {
+        var ts = TimeUtil.TicksSinceEpoch(utc);
+        return PutEvent(rid, eid, task, ts, ver, xml, overwrite);
       }
 
       private void InitTables()

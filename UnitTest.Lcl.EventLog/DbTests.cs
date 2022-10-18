@@ -14,6 +14,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 using Lcl.EventLog.Jobs.Database;
+using Lcl.EventLog.Utilities;
 
 namespace UnitTest.Lcl.EventLog
 {
@@ -33,7 +34,7 @@ namespace UnitTest.Lcl.EventLog
       _output.WriteLine($"DB file is {dbName}");
       if(File.Exists(dbName))
       {
-        _output.WriteLine($"Deleting existing DB");
+        _output.WriteLine("Deleting existing DB before test");
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
@@ -52,7 +53,7 @@ namespace UnitTest.Lcl.EventLog
       _output.WriteLine($"DB file is {dbName}");
       if(File.Exists(dbName))
       {
-        _output.WriteLine($"Deleting existing DB");
+        _output.WriteLine("Deleting existing DB before test");
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
@@ -114,7 +115,7 @@ namespace UnitTest.Lcl.EventLog
       _output.WriteLine($"DB file is {dbName}");
       if(File.Exists(dbName))
       {
-        _output.WriteLine($"Deleting existing DB");
+        _output.WriteLine("Deleting existing DB before test");
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
@@ -161,7 +162,7 @@ namespace UnitTest.Lcl.EventLog
       _output.WriteLine($"DB file is {dbName}");
       if(File.Exists(dbName))
       {
-        _output.WriteLine($"Deleting existing DB");
+        _output.WriteLine("Deleting existing DB before test");
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
@@ -182,7 +183,66 @@ namespace UnitTest.Lcl.EventLog
         events = db.ReadEvents(eid: 1).ToList();
         Assert.Empty(events);
 
-        // TODO: actually insert events and query them
+        var t0 = new DateTime(2022, 10, 17, 10, 30, 46, 123, DateTimeKind.Utc);
+        var ts0 = TimeUtil.TicksSinceEpoch(t0);
+        var interval = TimeSpan.FromMilliseconds(1234).Ticks;
+        db.PutEvent(1, 1, 11, ts0+0*interval, 0, "<dummy/>");
+        db.PutEvent(2, 2, 12, ts0+1*interval, 0, "<dummy/>");
+        db.PutEvent(3, 1, 11, ts0+2*interval, 0, "<dummy/>");
+        // insert events out-of-order, so we can verify they are returned in-order
+        db.PutEvent(7, 1, 11, ts0+6*interval, 0, "<dummy/>");
+        db.PutEvent(8, 7, 17, ts0+7*interval, 0, "<dummy/>");
+        db.PutEvent(9, 2, 12, ts0+8*interval, 0, "<dummy/>");
+        db.PutEvent(4, 7, 17, ts0+3*interval, 0, "<dummy/>");
+        db.PutEvent(5, 7, 17, ts0+4*interval, 0, "<dummy/>");
+        db.PutEvent(6, 1, 11, ts0+5*interval, 0, "<dummy/>");
+
+        events = db.ReadEvents().ToList();
+        Assert.Equal(9, events.Count);
+        Assert.Equal(1, events[0].RecordId);
+        Assert.Equal(1, events[0].EventId);
+        Assert.Equal("2022-10-17T10:30:46.1230000Z", events[0].TimeStamp.ToString("o"));
+        Assert.Equal(9, events[^1].RecordId);
+        Assert.Equal(2, events[^1].EventId);
+
+        events = db.ReadEvents(ridMin:3, ridMax:7).ToList();
+        Assert.Equal(5, events.Count);
+        Assert.Equal(3, events[0].RecordId);
+        Assert.Equal(7, events[^1].RecordId);
+
+        events = db.ReadEvents(ridMin: 3, ridMax: 7, eid: 7).ToList();
+        Assert.Equal(2, events.Count);
+        Assert.Equal(4, events[0].RecordId);
+        Assert.Equal(5, events[^1].RecordId);
+
+        events = db.ReadEvents(ridMax: 7).ToList();
+        Assert.Equal(7, events.Count);
+        Assert.Equal(1, events[0].RecordId);
+        Assert.Equal(7, events[^1].RecordId);
+
+        // duplicate detection
+        Assert.Throws<Microsoft.Data.Sqlite.SqliteException>(() => {
+          db.PutEvent(9, 3, 13, ts0+9*interval, 0, "<dummy/>");
+        });
+        // overwrite (not a recommended use case)
+        db.PutEvent(9, 3, 13, ts0+9*interval, 0, "<dummy/>", true);
+        events = db.ReadEvents().ToList();
+        Assert.Equal(9, events[^1].RecordId);
+        Assert.Equal(3, events[^1].EventId);
+
+        _output.WriteLine("-----------");
+        foreach(var e in events)
+        {
+          var ts = e.TimeStamp.ToString("o");
+          _output.WriteLine($"R:{e.RecordId} E:{e.EventId} T:{ts}");
+        }
+
+        // DateTime based filtering
+        var utc0 = new DateTime(2022, 10, 17, 10, 30, 50, DateTimeKind.Utc);
+        events = db.ReadEvents(utcMin: utc0, utcMax: utc0.AddSeconds(5)).ToList();
+        Assert.Equal(4, events.Count);
+        Assert.Equal(5, events[0].RecordId);
+        Assert.Equal(8, events[^1].RecordId);
       }
 
     }
