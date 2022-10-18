@@ -9,12 +9,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Lcl.EventLog.Utilities;
+
 namespace Lcl.EventLog.Jobs.Database
 {
   /// <summary>
   /// Models a row in the EventState table
   /// </summary>
-  public class EventStateRow
+  public class EventStateRow: IEquatable<EventStateRow>, IHasKey<int>
   {
     /// <summary>
     /// Create a new EventStateRow
@@ -40,6 +42,23 @@ namespace Lcl.EventLog.Jobs.Database
     /// Whether or not to import this event type
     /// </summary>
     public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Implements IEquatable
+    /// </summary>
+    public bool Equals(EventStateRow? other)
+    {
+      return
+        other != null
+        && other.Eid == Eid
+        && other.MinVersion == MinVersion 
+        && other.Enabled == Enabled;
+    }
+
+    /// <summary>
+    /// Implements IHasKey
+    /// </summary>
+    public int Key => Eid;
 
   }
 }

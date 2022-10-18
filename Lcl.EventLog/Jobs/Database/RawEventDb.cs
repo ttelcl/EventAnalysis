@@ -15,6 +15,7 @@ using Microsoft.Data.Sqlite;
 using Dapper;
 
 using Lcl.EventLog.Utilities;
+using System.Diagnostics.Eventing.Reader;
 
 namespace Lcl.EventLog.Jobs.Database
 {
@@ -148,7 +149,7 @@ namespace Lcl.EventLog.Jobs.Database
       /// </summary>
       public bool CanCreate { get; }
 
-      private SqliteConnection Connection { get; }
+      internal SqliteConnection Connection { get; }
 
       /// <summary>
       /// Dispose this object and the db connection it wraps
@@ -165,6 +166,29 @@ namespace Lcl.EventLog.Jobs.Database
       public void DbInit()
       {
         InitTables();
+      }
+
+      /// <summary>
+      /// Insert a batch of records into the database
+      /// </summary>
+      public int PutEvents(
+        IEnumerable<EventLogRecord> records,
+        ConflictMode conflictHandling = ConflictMode.Default)
+      {
+        var n = 0;
+        using(var eij = new EventImportJob(this))
+        {
+          eij.ConflictHandling = conflictHandling;
+          foreach(var record in records)
+          {
+            if(eij.ProcessEvent(record))
+            {
+              n++;
+            }
+          }
+          eij.Commit(true);
+        }
+        return n;
       }
 
       /// <summary>
@@ -354,10 +378,18 @@ WHERE " + String.Join(@"
       /// Does not affect the Tasks and EventState tables.
       /// Normally you should call this inside a transaction only.
       /// </summary>
-      public int PutEvent(long rid, int eid, int task, long ts, int ver, string xml, bool overwrite=false)
+      public int PutEvent(long rid, int eid, int task, long ts, int ver, string xml, ConflictMode conflict = ConflictMode.Default)
       {
-        return Connection.Execute(@"
-INSERT "+ (overwrite ? "OR REPLACE " : "") + @"INTO Events (rid, eid, task, ts, ver, xml)
+        var cmd =
+          conflict switch {
+            ConflictMode.Default => "INSERT",
+            ConflictMode.Replace => "INSERT OR REPLACE",
+            ConflictMode.Ignore => "INSERT OR IGNORE",
+            _ => throw new InvalidOperationException("Unknown conflict mode"),
+          };
+          
+        return Connection.Execute(cmd + @"
+INTO Events (rid, eid, task, ts, ver, xml)
 VALUES (@Rid, @Eid, @Task, @Ts, @Ver, @Xml)", new {
           Rid = rid,
           Eid = eid,
@@ -373,10 +405,20 @@ VALUES (@Rid, @Eid, @Task, @Ts, @Ver, @Xml)", new {
       /// Does not affect the Tasks and EventState tables.
       /// Normally you should call this inside a transaction only.
       /// </summary>
-      public int PutEvent(long rid, int eid, int task, DateTime utc, int ver, string xml, bool overwrite = false)
+      public int PutEvent(long rid, int eid, int task, DateTime utc, int ver, string xml, ConflictMode conflict = ConflictMode.Default)
       {
         var ts = TimeUtil.TicksSinceEpoch(utc);
-        return PutEvent(rid, eid, task, ts, ver, xml, overwrite);
+        return PutEvent(rid, eid, task, ts, ver, xml, conflict);
+      }
+
+      /// <summary>
+      /// Return the maximum record ID in the Events table (returning null if the table is empty)
+      /// </summary>
+      public long? MaxRecordId()
+      {
+        return Connection.ExecuteScalar<long?>(@"
+SELECT MAX(rid)
+FROM Events");
       }
 
       private void InitTables()

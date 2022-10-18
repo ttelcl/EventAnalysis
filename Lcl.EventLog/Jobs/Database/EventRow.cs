@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,7 +17,7 @@ namespace Lcl.EventLog.Jobs.Database
   /// <summary>
   /// Represents a row in the Events table
   /// </summary>
-  public class EventRow
+  public class EventRow : IEquatable<EventRow>, IHasKey<long>
   {
     /// <summary>
     /// Create a new EventRow
@@ -72,6 +73,26 @@ namespace Lcl.EventLog.Jobs.Database
     /// The XML representation of the full event
     /// </summary>
     public string Xml { get; }
+
+    /// <summary>
+    /// Implements IEquatable{EventRow}
+    /// </summary>
+    public bool Equals(EventRow? other)
+    {
+      return
+        other != null && 
+        other.RecordId == RecordId &&
+        other.EventId == EventId &&
+        other.TaskId == TaskId &&
+        other.TickStamp == TickStamp &&
+        other.Version == Version &&
+        other.Xml == Xml;
+    }
+
+    /// <summary>
+    /// Implements IHasKey
+    /// </summary>
+    public long Key => RecordId;
 
   }
 }

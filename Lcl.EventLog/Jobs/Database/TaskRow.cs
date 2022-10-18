@@ -9,12 +9,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Lcl.EventLog.Utilities;
+
 namespace Lcl.EventLog.Jobs.Database
 {
   /// <summary>
   /// Models a row in the Tasks table
   /// </summary>
-  public class TaskRow
+  public class TaskRow: IEquatable<TaskRow>, IHasKey<ValueTuple<int, int>>
   {
     /// <summary>
     /// Create a new TaskRow (typically invoked by Dapper)
@@ -41,5 +43,21 @@ namespace Lcl.EventLog.Jobs.Database
     /// </summary>
     public string? Description { get; set; }
 
+    /// <summary>
+    /// Implements IEquatable
+    /// </summary>
+    public bool Equals(TaskRow? other)
+    {
+      return
+        other != null
+        && other.EventId == EventId
+        && other.TaskId == TaskId
+        && other.Description == Description;
+    }
+
+    /// <summary>
+    /// Implements IHasKey
+    /// </summary>
+    public ValueTuple<int, int> Key => (EventId, TaskId);
   }
 }
