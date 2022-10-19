@@ -18,6 +18,7 @@
     <Compile Include="Usage.fs" />
     <Compile Include="AppChannels.fs" />
     <Compile Include="JobChannelInit.fs" />
+    <Compile Include="AppUpdate.fs" />
     <Compile Include="Program.fs" />
     <None Include="README.md" />
   </ItemGroup>

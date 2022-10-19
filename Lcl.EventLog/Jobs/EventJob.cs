@@ -119,6 +119,23 @@ namespace Lcl.EventLog.Jobs
     }
 
     /// <summary>
+    /// Return the maximum imported record ID for this job's channel,
+    /// or 0 if no records were imported or the database has not been
+    /// initialized yet.
+    /// </summary>
+    public long MaxRecordId()
+    {
+      if(!HasDb)
+      {
+        return 0L;
+      }
+      using(var db = OpenInnerDatabase(false))
+      {
+        return db.MaxRecordId() ?? 0L;
+      }
+    }
+
+    /// <summary>
     /// Open the inner database. Make sure to Dispose() it after use.
     /// </summary>
     public RawEventDb.OpenDb OpenInnerDatabase(bool writable)
