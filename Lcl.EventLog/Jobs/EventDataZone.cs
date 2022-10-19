@@ -34,15 +34,22 @@ namespace Lcl.EventLog.Jobs
     /// <param name="baseFolder">
     /// Overrides the base folder to a nonstandard location
     /// </param>
+    /// <param name="skipRegistry">
+    /// If true: skip job / channel registry initialization.
+    /// This allows creating this object even if the job configurations
+    /// are corrupt.
+    /// </param>
     public EventDataZone(
       bool readOnly,
       string? machine = null,
-      string? baseFolder = null)
+      string? baseFolder = null,
+      bool skipRegistry = false)
     {
       if(String.IsNullOrEmpty(machine))
       {
         machine = Environment.MachineName;
       }
+      Machine = machine!;
       ReadOnly = readOnly;
       RootFolder =
         String.IsNullOrEmpty(baseFolder)
@@ -54,9 +61,14 @@ namespace Lcl.EventLog.Jobs
         : Path.Combine(
             Path.GetFullPath(baseFolder),
             machine);
+      Registry = new JobRegistry(Machine);
       if(!ReadOnly && !Directory.Exists(RootFolder))
       {
         Directory.CreateDirectory(RootFolder);
+      }
+      if(!skipRegistry)
+      {
+        ReloadRegistry();
       }
     }
 
@@ -69,6 +81,28 @@ namespace Lcl.EventLog.Jobs
     /// True when this zone should be treated readonly.
     /// </summary>
     public bool ReadOnly { get; }
+
+    /// <summary>
+    /// The machine name this data zone relates to
+    /// </summary>
+    public string Machine { get; }
+
+    /// <summary>
+    /// The registry of jobs and channels
+    /// </summary>
+    public JobRegistry Registry { get; }
+
+    /// <summary>
+    /// Clear and reload the job / channel registry
+    /// </summary>
+    public void ReloadRegistry()
+    {
+      Registry.Clear();
+      foreach(var job in EnumJobs())
+      {
+        Registry.Register(job);
+      }
+    }
 
     /// <summary>
     /// Enumerate and load job configurations found in the zone's root folder
@@ -92,7 +126,8 @@ namespace Lcl.EventLog.Jobs
     }
 
     /// <summary>
-    /// Writes a job configuration to the zone
+    /// Writes a job configuration to the zone. Also registers the configuration
+    /// in the Registry.
     /// </summary>
     /// <param name="ejc">
     /// The job configuration to save
@@ -110,6 +145,7 @@ namespace Lcl.EventLog.Jobs
         throw new InvalidOperationException(
           $"File already exists (and force-overwrite flag is not set): {fnm}");
       }
+      Registry.Register(ejc);
       var json = JsonConvert.SerializeObject(ejc, Formatting.Indented);
       var tmp = fnm + ".tmp";
       File.WriteAllText(tmp, json);
@@ -129,33 +165,53 @@ namespace Lcl.EventLog.Jobs
     }
 
     /// <summary>
-    /// Read a job configuration and wrap it in an EventJob object
+    /// Read a job configuration and wrap it in an EventJob object.
+    /// The job to open must have been registered in the Registry already.
     /// </summary>
+    /// <param name="name">
+    /// The name of the job or the channel.
+    /// </param>
     public EventJob OpenJob(string name)
     {
-      var cfgfile = JobConfigFile(name);
-      if(!File.Exists(cfgfile))
+      var ej = TryOpenJob(name);
+      if(ej == null)
       {
-        throw new FileNotFoundException(
-          $"Unknown job: '{name}'", cfgfile);
+        throw new InvalidOperationException(
+          $"Unknown job or channel: '{name}'");
       }
-      var cfg = ReadConfigFile(cfgfile);
-      return new EventJob(this, cfg);
+      else
+      {
+        return ej;
+      }
     }
 
     /// <summary>
     /// Read a job configuration and wrap it in an EventJob object.
     /// Returns null if not found
+    /// The job to open must have been registered in the Registry already.
     /// </summary>
+    /// <param name="name">
+    /// The name of the job or the channel.
+    /// </param>
     public EventJob? TryOpenJob(string name)
     {
-      var cfgfile = JobConfigFile(name);
-      if(!File.Exists(cfgfile))
+      EventJobConfig? cfg;
+      if(EventJobConfig.IsValidJobName(name))
+      {
+        cfg = Registry.FindByJob(name) ?? Registry.FindByChannel(name);
+      }
+      else
+      {
+        cfg = Registry.FindByChannel(name);
+      }
+      if(cfg == null)
       {
         return null;
       }
-      var cfg = ReadConfigFile(cfgfile);
-      return new EventJob(this, cfg);
+      else
+      {
+        return new EventJob(this, cfg);
+      }
     }
 
     /// <summary>
