@@ -32,7 +32,7 @@ namespace Lcl.EventLog.Jobs
     /// The job name (used as short form to identify a log channel).
     /// This must be valid according to <see cref="IsValidJobName(string)"/>.
     /// </param>
-    /// <param name="log">
+    /// <param name="channel">
     /// The log channel name
     /// </param>
     /// <param name="admin">
@@ -41,11 +41,11 @@ namespace Lcl.EventLog.Jobs
     /// </param>
     public EventJobConfig(
       string name,
-      string log,
+      string channel,
       bool admin)
     {
       Name = name;
-      Log = log;
+      Channel = channel;
       Admin = admin;
       ThrowIfInvalidJobName(Name);
     }
@@ -80,8 +80,8 @@ namespace Lcl.EventLog.Jobs
     /// <summary>
     /// The name of the event log channel to import from
     /// </summary>
-    [JsonProperty("log")]
-    public string Log { get; }
+    [JsonProperty("channel")]
+    public string Channel { get; }
 
     /// <summary>
     /// Whether accessing the underlying event log requires

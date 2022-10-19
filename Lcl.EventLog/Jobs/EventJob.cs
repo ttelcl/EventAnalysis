@@ -115,7 +115,7 @@ namespace Lcl.EventLog.Jobs
     /// </exception>
     public int UpdateDb(RawEventDb.OpenDb db, int cap = Int32.MaxValue)
     {
-      return db.UpdateFrom(Configuration.Log, cap);
+      return db.UpdateFrom(Configuration.Channel, cap);
     }
 
     /// <summary>

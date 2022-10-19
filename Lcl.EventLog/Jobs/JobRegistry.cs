@@ -51,19 +51,19 @@ namespace Lcl.EventLog.Jobs
     /// </exception>
     public void Register(EventJobConfig cfg)
     {
-      var byChannel = FindByChannel(cfg.Log);
+      var byChannel = FindByChannel(cfg.Channel);
       if(byChannel != null && cfg.Name != byChannel.Name)
       {
         throw new InvalidOperationException(
-          $"Duplicate channel name '{cfg.Log}' (jobs '{cfg.Name}' and '{byChannel.Name}')");
+          $"Duplicate channel name '{cfg.Channel}' (jobs '{cfg.Name}' and '{byChannel.Name}')");
       }
       var byJob = FindByJob(cfg.Name);
-      if(byJob != null && cfg.Log != byJob.Log)
+      if(byJob != null && cfg.Channel != byJob.Channel)
       {
         throw new InvalidOperationException(
-          $"Duplicate job name '{cfg.Name}' (channels '{cfg.Log}' and '{byJob.Log}')");
+          $"Duplicate job name '{cfg.Name}' (channels '{cfg.Channel}' and '{byJob.Channel}')");
       }
-      _byChannel[cfg.Log] = cfg;
+      _byChannel[cfg.Channel] = cfg;
       _byJob[cfg.Name] = cfg;
     }
 
