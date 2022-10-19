@@ -2,6 +2,7 @@
 
 open System
 
+open ColorPrint
 open CommonTools
 open ExceptionTool
 open Usage
@@ -17,9 +18,8 @@ let rec run arglist =
   | [] ->
     usage verbose
     0  // program return status code to the operating system; 0 == "OK"
-  //  *EXAMPLE*:
-  //| "foo" :: rest ->
-  //  rest |> AppFoo.runFoo
+  | "loglist" :: rest ->
+    rest |> AppChannels.run
   | _ :: _ ->
     // TODO: actual processing based on command line arguments
     new NotImplementedException("eventtool.exe is not yet implemented") |> raise
