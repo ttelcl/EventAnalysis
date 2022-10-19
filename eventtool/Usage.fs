@@ -12,7 +12,7 @@ let usage detailed =
   cp "\foeventtool \fychannels\f0 [\fg-save \fc<filename>\f0]"
   cp "   Print a list of known event log channel names on this computer."
   cp "\foeventtool \fyinit\f0 \fg-channel \fc<channel>\f0 [\fg-job \fc<jobname>\f0] [\fg-admin\f0] [\fg-m \fc<machine>\f0]"
-  cp "   Create a new event channel job. \fc<jobname>\f0 is the alias used to identify the channel."
+  cp "   Create a new event channel job (configuration file, folder structure, empty database)."
   cp "   \fg-channel \fc<channel>\f0   The event log channel name"
   cp "   \fg-job \fc<jobname>\f0       The alias used to identify the channel."
   cp "\foeventtool \fystatus\f0 \fg-job \fc<jobname>"

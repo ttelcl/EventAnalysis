@@ -18,11 +18,12 @@ let rec run arglist =
   | [] ->
     usage verbose
     0  // program return status code to the operating system; 0 == "OK"
-  | "loglist" :: rest ->
+  | "channels" :: rest ->
     rest |> AppChannels.run
-  | _ :: _ ->
-    // TODO: actual processing based on command line arguments
-    new NotImplementedException("eventtool.exe is not yet implemented") |> raise
+  | "init" :: rest ->
+    rest |> JobChannelInit.run
+  | x :: _ ->
+    cp $"\foUnknown command \fr{x}\f0."
     1
 
 [<EntryPoint>]

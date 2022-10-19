@@ -55,7 +55,7 @@ namespace Lcl.EventLog.Jobs
     /// </summary>
     public static bool IsValidJobName(string name)
     {
-      var rgx = @"[a-z][a-z0-9]*([-_][a-z0-9]+)*";
+      var rgx = @"^[a-z][a-z0-9]*([-_][a-z0-9]+)*$";
       return Regex.IsMatch(name, rgx, RegexOptions.IgnoreCase);
     }
 
