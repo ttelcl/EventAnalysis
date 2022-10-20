@@ -22,8 +22,12 @@ let rec run arglist =
     rest |> AppChannels.run
   | "init" :: rest ->
     rest |> JobChannelInit.run
+  | "overview" :: rest ->
+    rest |> AppOverview.run
   | "update" :: rest ->
     rest |> AppUpdate.run
+  | "jobs" :: rest ->
+    rest |> AppJobs.run
   | x :: _ ->
     cp $"\foUnknown command \fr{x}\f0."
     1

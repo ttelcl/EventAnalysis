@@ -49,22 +49,50 @@ namespace Lcl.EventLog.Jobs
       {
         machine = Environment.MachineName;
       }
-      Machine = machine!;
+      machine = machine!.ToUpper();
       ReadOnly = readOnly;
-      RootFolder =
+      BaseFolder =
         String.IsNullOrEmpty(baseFolder)
         ? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "Yoco",
-            "EventAnalysis",
-            machine)
+            "EventAnalysis")
         : Path.Combine(
-            Path.GetFullPath(baseFolder),
-            machine);
-      Registry = new JobRegistry(Machine);
-      if(!ReadOnly && !Directory.Exists(RootFolder))
+            Path.GetFullPath(baseFolder));
+      RootFolder = Path.Combine(BaseFolder, machine);
+      Registry = new JobRegistry(machine);
+      TagFile = Path.Combine(BaseFolder, $"{machine.ToLowerInvariant()}.zonecfg.json");
+      if(File.Exists(TagFile))
       {
-        Directory.CreateDirectory(RootFolder);
+        var json = File.ReadAllText(TagFile);
+        var cfg = JsonConvert.DeserializeObject<EventZoneConfig>(json);
+        if(cfg == null)
+        {
+          throw new InvalidOperationException(
+            $"Fatal error in '{TagFile}'");
+        }
+        if(!cfg.Machine.Equals(machine, StringComparison.InvariantCultureIgnoreCase))
+        {
+          throw new InvalidOperationException(
+            $"Invalid zone configuration. Machine name mismatch '{machine}' vs '{cfg.Machine}'");
+        }
+        Configuration = cfg;
+      }
+      else
+      {
+        Configuration = new EventZoneConfig(machine);
+      }
+      if(!ReadOnly)
+      {
+        if(!Exists)
+        {
+          Directory.CreateDirectory(RootFolder);
+        }
+        if(!File.Exists(TagFile))
+        {
+          var json = JsonConvert.SerializeObject(Configuration, Formatting.Indented);
+          File.WriteAllText(TagFile, json);
+        }
       }
       if(!skipRegistry)
       {
@@ -73,9 +101,19 @@ namespace Lcl.EventLog.Jobs
     }
 
     /// <summary>
+    /// The base folder for storing per-machine zone folders
+    /// </summary>
+    public string BaseFolder { get; }
+
+    /// <summary>
     /// The root folder for storing events for the specified machine
     /// </summary>
     public string RootFolder { get; }
+
+    /// <summary>
+    /// The file that tags the RootFolder as a machine data zone folder
+    /// </summary>
+    public string TagFile { get; }
 
     /// <summary>
     /// True when this zone should be treated readonly.
@@ -85,12 +123,23 @@ namespace Lcl.EventLog.Jobs
     /// <summary>
     /// The machine name this data zone relates to
     /// </summary>
-    public string Machine { get; }
+    public string Machine => Configuration.Machine;
+
+    /// <summary>
+    /// The zone configuration object
+    /// </summary>
+    public EventZoneConfig Configuration { get; }
 
     /// <summary>
     /// The registry of jobs and channels
     /// </summary>
     public JobRegistry Registry { get; }
+
+    /// <summary>
+    /// True if the data zone folder exists. This can only be false
+    /// if this zone was created read-only
+    /// </summary>
+    public bool Exists => Directory.Exists(RootFolder);
 
     /// <summary>
     /// Clear and reload the job / channel registry
@@ -101,6 +150,34 @@ namespace Lcl.EventLog.Jobs
       foreach(var job in EnumJobs())
       {
         Registry.Register(job);
+      }
+    }
+
+    /// <summary>
+    /// Enumerate all existing machine zones in the same base folder as this zone.
+    /// </summary>
+    public IEnumerable<EventZoneConfig> SiblingZones()
+    {
+      var basedi = new DirectoryInfo(BaseFolder);
+      foreach(var zcfgfile in basedi.EnumerateFiles("*.zonecfg.json"))
+      {
+        var zonename =
+          Path.GetFileNameWithoutExtension(
+            Path.GetFileNameWithoutExtension(zcfgfile.Name))
+          .ToUpperInvariant();
+        var json = File.ReadAllText(zcfgfile.FullName);
+        var ezc = JsonConvert.DeserializeObject<EventZoneConfig>(json);
+        if(ezc != null)
+        {
+          if(zonename.Equals(ezc.Machine, StringComparison.InvariantCultureIgnoreCase))
+          {
+            var zd = Path.Combine(basedi.FullName, zonename);
+            if(Directory.Exists(zd))
+            {
+              yield return ezc;
+            }
+          }
+        }
       }
     }
 
