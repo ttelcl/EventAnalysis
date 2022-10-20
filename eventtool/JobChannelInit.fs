@@ -12,6 +12,7 @@ open CommonTools
 
 type private Options = {
   JobName: string
+  AutoJobName: bool
   ChannelName: string
   Machine: string
   IsLocal: bool
@@ -21,6 +22,12 @@ type private Options = {
 let private isblank s =
   s |> String.IsNullOrEmpty
 
+let deriveJobName (channel:string) =
+  let parts0 = channel.Split("/")
+  let parts1 = parts0[0].Split("-")
+  let parts2 = parts1[parts1.Length-1].Split(" ")
+  String.Join("-", parts2).ToLowerInvariant()
+
 let run args =
   let rec parsemore o args =
     match args with
@@ -28,7 +35,13 @@ let run args =
       verbose <- true
       rest |> parsemore o
     | "-job" :: jnm :: rest ->
+      if o.AutoJobName then
+        failwith "-job and -J are mutually exclusive"
       rest |> parsemore {o with JobName = jnm}
+    | "-J" :: rest ->
+      if o.JobName |> String.IsNullOrEmpty |> not then
+        failwith "-J and -job are mutually exclusive"
+      rest |> parsemore {o with AutoJobName = true}
     | "-channel" :: chnm :: rest ->
       rest |> parsemore {o with ChannelName = chnm}
     | "-machine" :: mnm :: rest ->
@@ -41,7 +54,30 @@ let run args =
       let o =
         if o.Machine |> isblank then {o with Machine = Environment.MachineName} else o
       let o =
-        if o.JobName |> isblank then {o with JobName = o.ChannelName.ToLowerInvariant()} else o
+        if o.JobName |> String.IsNullOrEmpty then
+          let jobname =
+            if o.ChannelName |> EventJobConfig.IsValidJobName then
+              o.ChannelName
+            else
+              o.ChannelName |> deriveJobName
+          if o.AutoJobName then
+            if jobname |> EventJobConfig.IsValidJobName |> not then
+              cp $"Derived job name '\fr{jobname}\f0' appears to be invalid."
+              cp $"To fix, explicitly specify a job name using \fg-job\f0 instead of \fG-J\f0"
+              failwith $"Invalid job name '{jobname}'"
+            else
+              cp $"Using derived job name \fc{jobname}\f0."
+              {o with JobName = jobname}
+          else
+            if jobname |> EventJobConfig.IsValidJobName |> not then
+              cp $"No job name specified. \fg-J\f0 would derive the name \fr{jobname}\f0, but that appears to be invalid."
+              cp $"To fix, explicitly specify a job name using \fg-job\f0 instead of \fG-J\f0"
+              failwith $"No job name specified"
+            else
+              cp $"No job name specified. \fg-J\f0 would derive the name \fc{jobname}\f0."
+              failwith "No job name specified"
+        else
+          o
       if o.JobName |> EventJobConfig.IsValidJobName |> not then
         failwith $"'{o.JobName}' is not a valid job name"
       let o =
@@ -51,6 +87,7 @@ let run args =
       failwith $"Unrecognized argument '{x}'"
   let o = args |> parsemore {
     JobName = null
+    AutoJobName = false
     ChannelName = null
     Machine = null
     IsLocal = true
