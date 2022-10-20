@@ -136,6 +136,23 @@ namespace Lcl.EventLog.Jobs
     }
 
     /// <summary>
+    /// Get an overview of the data: a list of DbOverview records, 
+    /// one per unique (event ID, task ID) combination (usually that
+    /// means one row per event ID)
+    /// </summary>
+    public IReadOnlyList<DbOverview> GetOverview()
+    {
+      if(!HasDb)
+      {
+        return Array.Empty<DbOverview>();
+      }
+      using(var db = OpenInnerDatabase(false))
+      {
+        return db.GetOverview();
+      }
+    }
+
+    /// <summary>
     /// Open the inner database. Make sure to Dispose() it after use.
     /// </summary>
     public RawEventDb.OpenDb OpenInnerDatabase(bool writable)

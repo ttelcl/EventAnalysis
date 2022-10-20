@@ -113,10 +113,14 @@ namespace UnitTest.Lcl.EventLog
         Assert.Empty(states);
         var n = fillingJob.UpdateDb(db);
         _output.WriteLine($"Inserted {n} records");
-        var counts = db.EventTaskCounts();
-        foreach(var c in counts)
+        var overviews = db.GetOverview();
+        foreach(var o in overviews)
         {
-          _output.WriteLine($"({c.EventId},{c.TaskId}) : {c.Total}");
+          var label = o.TaskLabel ?? "?";
+          var tMin = o.UtcMin?.ToLocalTime().ToString("o") ?? "?";
+          var tMax = o.UtcMax?.ToLocalTime().ToString("o") ?? "?";
+          _output.WriteLine(
+            $"({o.EventId}, {o.TaskId}): {o.EventCount,4}, {o.MinRid,5} - {o.MaxRid,5}, {o.IsEnabled}, '{label}', {tMax}");
         }
       }
     }

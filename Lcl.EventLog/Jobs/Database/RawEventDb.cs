@@ -189,7 +189,7 @@ namespace Lcl.EventLog.Jobs.Database
         var ers = new EventRecordSource(eventLogName);
         return PutEvents(ers.ReadRecords(aboveRid), cap, ConflictMode.Default);
       }
-      
+
       /// <summary>
       /// Return the number of events for each unique (eventId, taskId) combination
       /// </summary>
@@ -198,7 +198,31 @@ namespace Lcl.EventLog.Jobs.Database
         return Connection.Query<(int EventId, int TaskId, int Total)>(@"
 SELECT eid AS EventId, task AS TaskId, Count(*) AS Total
 FROM Events
-GROUP BY eid, task").ToList().AsReadOnly();
+GROUP BY eid, task
+ORDER BY eid, task").ToList().AsReadOnly();
+      }
+
+      /// <summary>
+      /// Return an overview of the DB content (using one row per eventId/task combination)
+      /// </summary>
+      public IReadOnlyList<DbOverview> GetOverview()
+      {
+        return Connection.Query<DbOverview>(@"
+SELECT
+  t.eid as eventId,
+  t.task as taskId,
+  t.description AS taskLabel,
+  s.minversion AS minVersion,
+  s.enabled AS isEnabled,
+  COUNT(*) AS eventCount,
+  MIN(e.rid) AS minRid, 
+  MAX(e.rid) AS maxRid,
+  MIN(e.ts) AS eticksMin,
+  MAX(e.ts) AS eticksMax
+FROM EventState s, Tasks t, Events e
+WHERE s.eid = t.eid AND e.eid = t.eid AND e.task = t.task
+GROUP BY t.eid, t.task
+ORDER BY t.eid, t.task").ToList().AsReadOnly();
       }
 
       /// <summary>
@@ -436,7 +460,7 @@ WHERE " + String.Join(@"
             ConflictMode.Ignore => "INSERT OR IGNORE",
             _ => throw new InvalidOperationException("Unknown conflict mode"),
           };
-          
+
         return Connection.Execute(cmd + @"
 INTO Events (rid, eid, task, ts, ver, xml)
 VALUES (@Rid, @Eid, @Task, @Ts, @Ver, @Xml)", new {

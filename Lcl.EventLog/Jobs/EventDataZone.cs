@@ -62,7 +62,7 @@ namespace Lcl.EventLog.Jobs
             Path.GetFullPath(baseFolder),
             machine);
       Registry = new JobRegistry(Machine);
-      if(!ReadOnly && !Directory.Exists(RootFolder))
+      if(!ReadOnly && !Exists)
       {
         Directory.CreateDirectory(RootFolder);
       }
@@ -91,6 +91,12 @@ namespace Lcl.EventLog.Jobs
     /// The registry of jobs and channels
     /// </summary>
     public JobRegistry Registry { get; }
+
+    /// <summary>
+    /// True if the data zone folder exists. This can only be false
+    /// if this zone was created read-only
+    /// </summary>
+    public bool Exists => Directory.Exists(RootFolder);
 
     /// <summary>
     /// Clear and reload the job / channel registry
