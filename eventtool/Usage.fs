@@ -7,7 +7,7 @@ open ColorPrint
 let usage detailed =
   cp "\foWindows Event Log utility\f0"
   cp ""
-  cp "\foeventtool \fylist\f0 [\fg-m \fc<machine>\f0|\fg-M\f0]"
+  cp "\foeventtool \fyjobs\f0 [\fg-m \fc<machine>\f0|\fg-M\f0]"
   cp "   List jobs in the current machine zone, or the specified machine zone (\fg-m\f0), or all machine zones (\fg-M\f0)."
   cp "\foeventtool \fychannels\f0 [\fg-save \fc<filename>\f0]"
   cp "   Print or save a list of known event log channel names on this computer."

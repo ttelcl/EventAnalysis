@@ -26,6 +26,8 @@ let rec run arglist =
     rest |> AppOverview.run
   | "update" :: rest ->
     rest |> AppUpdate.run
+  | "jobs" :: rest ->
+    rest |> AppJobs.run
   | x :: _ ->
     cp $"\foUnknown command \fr{x}\f0."
     1

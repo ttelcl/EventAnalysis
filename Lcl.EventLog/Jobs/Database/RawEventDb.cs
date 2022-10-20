@@ -218,7 +218,8 @@ SELECT
   MIN(e.rid) AS minRid, 
   MAX(e.rid) AS maxRid,
   MIN(e.ts) AS eticksMin,
-  MAX(e.ts) AS eticksMax
+  MAX(e.ts) AS eticksMax,
+  SUM(LENGTH(e.xml)) AS xmlSize
 FROM EventState s, Tasks t, Events e
 WHERE s.eid = t.eid AND e.eid = t.eid AND e.task = t.task
 GROUP BY t.eid, t.task

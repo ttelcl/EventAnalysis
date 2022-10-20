@@ -32,7 +32,8 @@ namespace Lcl.EventLog.Jobs.Database
       long? minRid,
       long? maxRid,
       long? eticksMin,
-      long? eticksMax)
+      long? eticksMax,
+      long? xmlSize)
     {
       EventId = (int)eventId;
       TaskId = (int)taskId;
@@ -44,6 +45,7 @@ namespace Lcl.EventLog.Jobs.Database
       MaxRid = maxRid ?? 0L;
       UtcMin = eticksMin?.EpochDateTime();
       UtcMax = eticksMax?.EpochDateTime();
+      XmlSize = xmlSize ?? 0L;
     }
 
     /// <summary>
@@ -98,5 +100,10 @@ namespace Lcl.EventLog.Jobs.Database
     /// The latest timestamp for this event+task combination
     /// </summary>
     public DateTime? UtcMax { get; }
+
+    /// <summary>
+    /// The total length of all XML strings in the database
+    /// </summary>
+    public long XmlSize { get; }
   }
 }

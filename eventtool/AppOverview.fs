@@ -80,14 +80,16 @@ let run args =
       let tMinTxt = tMin.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss.fffffff")
       let tMaxTxt = tMax.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss.fffffff")
       let count = nonempty |> Seq.sumBy (fun r -> r.EventCount)
+      let size = nonempty |> Seq.sumBy (fun r -> r.XmlSize)
 
       cp $"There are \fb{count}\f0 events in the database:"
       cp $"  Event Record ID range is \fy{ridMin}\f0 to \fy{ridMax}\f0."
       cp $"  Time range (local) is \fg{tMinTxt}\f0 to \fg{tMaxTxt}\f0"
+      cp $"  Total XML characters: \fb{size}\f0 (average \fC{size / int64(count)}\f0)"
 
       cp "Events and tasks info"
       cpx "\fxEvent  \f0|\fx Task  \f0|\fx vmin \f0|\fx State    \f0|"
-      cp"\fx Count   \f0|\fx RID from - to     \f0|\fx task label \f0"
+      cp"\fx Count   \f0|\fx   Size   ( avg ) \f0|\fx RID from - to     \f0|\fx task label \f0"
       for r in overview do
         let enabled =
           if r.IsEnabled then "\fgEnabled " else "\frDisabled"
@@ -96,8 +98,14 @@ let run args =
             "\fk(no description)"
           else
             $"{r.TaskLabel}"
+        let avgSize =
+          if r.EventCount = 0 then
+            "    -"
+          else
+            $"%5d{r.XmlSize/int64(r.EventCount)}"
         cpx $"\fg%6d{r.EventId} \f0|\fc%6d{r.TaskId} \f0|\fk%5d{r.MinVersion} \f0| {enabled} \f0|"
-        cp $"\fb%8d{r.EventCount} \f0|\fy%8d{r.MinRid}\f0 -\fy%8d{r.MaxRid} \f0| {taskLabel}\f0"
+        cpx $"\fb%8d{r.EventCount} \f0|\fw%9d{r.XmlSize}\f0 (\fC{avgSize}\f0) |"
+        cp $"\fy%8d{r.MinRid}\f0 -\fy%8d{r.MaxRid} \f0| {taskLabel}\f0"
       
       if o.Save then
         cp $"\fg-save\fo is not implemented yet\f0."
