@@ -412,6 +412,57 @@ WHERE " + String.Join(@"
       }
 
       /// <summary>
+      /// Like <see cref="ReadEventsTicks(long?, long?, int?, long?, long?)"/>,
+      /// but only return matching record IDs
+      /// </summary>
+      public IEnumerable<long> ReadEventIdsTicks(
+        long? ridMin = null,
+        long? ridMax = null,
+        int? eid = null,
+        long? tMin = null,
+        long? tMax = null)
+      {
+        var q = @"
+SELECT rid
+FROM Events";
+        var conditions = new List<string>();
+        if(ridMin != null)
+        {
+          conditions.Add("rid >= @RidMin");
+        }
+        if(ridMax != null)
+        {
+          conditions.Add("rid <= @RidMax");
+        }
+        if(eid != null)
+        {
+          conditions.Add("eid = @Eid");
+        }
+        if(tMin != null)
+        {
+          conditions.Add("ts >= @TMin");
+        }
+        if(tMax != null)
+        {
+          conditions.Add("ts <= @TMax");
+        }
+        if(conditions.Count > 0)
+        {
+          var condition = @"
+WHERE " + String.Join(@"
+  AND ", conditions);
+          q = q + condition;
+        }
+        return Connection.Query<long>(q, new {
+          RidMin = ridMin,
+          RidMax = ridMax,
+          Eid = eid,
+          TMin = tMin,
+          TMax = tMax
+        });
+      }
+
+      /// <summary>
       /// Read events, filtered by the given query parameters.
       /// Timestamps are specified as DateTime, with a Kind of Utc or Local.
       /// Use <see cref="ReadEventsTicks"/> for the equivalent that uses
@@ -445,6 +496,24 @@ WHERE " + String.Join(@"
         long? tMin = utcMin.HasValue ? TimeUtil.TicksSinceEpoch(utcMin.Value) : null;
         long? tMax = utcMax.HasValue ? TimeUtil.TicksSinceEpoch(utcMax.Value) : null;
         return ReadEventsTicks(ridMin, ridMax, eid, tMin, tMax);
+      }
+
+      /// <summary>
+      /// Return a single record (or null if it does not exist)
+      /// </summary>
+      /// <param name="rid">
+      /// The record ID identifying the record
+      /// </param>
+      /// <returns>
+      /// the requested record or null if not found
+      /// </returns>
+      public EventRow? ReadEvent(long rid)
+      {
+        var q = @"
+SELECT rid, eid, task, ts, ver, xml
+FROM Events
+WHERE rid = @Rid";
+        return Connection.QuerySingleOrDefault<EventRow>(q, new { Rid = rid });
       }
 
       /// <summary>
