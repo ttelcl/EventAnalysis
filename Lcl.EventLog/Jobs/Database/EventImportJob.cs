@@ -87,7 +87,7 @@ namespace Lcl.EventLog.Jobs.Database
       if(Tracker.ShouldProcess(eventId, eventVersion))
       {
         var xml = elr.ToXml();
-        xml = XmlFixer.FixXml(xml);
+        xml = XmlUtilities.FixXml(xml);
         var n = _db.PutEvent(recordId, eventId, taskId, stamp, eventVersion, xml, ConflictHandling);
         return n > 0;
       }

@@ -66,7 +66,7 @@ let run args =
     use odb = job.OpenInnerDatabase(false)
     odb.ReadEventIdsTicks(eid = o.EventId)
     |> Seq.toArray
-  cp $"Found \fg{recordIds.Length}\f0 records matching \fc-e {o.JobName}\f0"
+  cp $"Found \fg{recordIds.Length}\f0 records matching \fc-e {o.EventId}\f0"
   if recordIds.Length = 0 then
     cp $"\frNo events available\f0!"
   elif recordIds.Length < o.EventCount then
@@ -84,7 +84,8 @@ let run args =
       else
         let onm = $"{job.Zone.Machine}.{job.Configuration.Name}.E%05d{e.EventId}.R%07d{rid}.xml"
         cp $"Saving \fg{onm}\f0"
-        let xml = e.Xml
+        let xml =
+          XmlUtilities.IndentXml(e.Xml, false)
         File.WriteAllText(onm, xml)
   0
 
