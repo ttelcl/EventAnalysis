@@ -5,7 +5,6 @@ open System.Text.RegularExpressions
 
 open CommonTools
 open ExceptionTool
-open Usage
 
 (*
   This main module is structured a bit different than usual due

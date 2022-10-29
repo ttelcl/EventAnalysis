@@ -3,6 +3,10 @@
 open System
 open System.IO
 
+/// Run "innerfn args", but write stdout to a logfile instead of to
+/// console. The logfile is {logfile}.log. If one exists, the log is
+/// appended. If one exists but it is larger than 100K, the old one is
+/// renamed to a timestamped name, and a new logfile is created.
 let runLogged logtag innerfn args =
   let logfilename = Path.Combine(Environment.CurrentDirectory, logtag + ".log")
   let lfi = new FileInfo(logfilename)

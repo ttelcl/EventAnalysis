@@ -11,7 +11,6 @@ open ColorPrint
 open CommonTools
 
 type private Options = {
-  Quiet: bool
   JobNames: string list
   Cap: int
 }
@@ -23,7 +22,8 @@ let run args =
       verbose <- true
       rest |> parsemore o
     | "-q" :: rest ->
-      rest |> parsemore {o with Quiet = true}
+      // vestigial option from an older version: ignore
+      rest |> parsemore o
     | "-job" :: jnm :: rest ->
       rest |> parsemore {o with JobNames = jnm :: o.JobNames}
     | "-cap" :: captxt :: rest ->
@@ -38,21 +38,18 @@ let run args =
     | x :: _ ->
       failwith $"Unknown command '{x}'"
   let o = args |> parsemore {
-    Quiet = false
     JobNames = []
     Cap = 0
   }
   let zone = new EventDataZone(false)
   let jobs = o.JobNames |> List.map zone.OpenJob
   for job in jobs do
-    if o.Quiet |> not then
-      cpx $"Job \fg{job.Configuration.Name}\f0 (\fc{job.Configuration.Channel}\f0): "
+    cpx $"Job \fg{job.Configuration.Name}\f0 (\fc{job.Configuration.Channel}\f0): "
     let n = job.UpdateDb(o.Cap)
-    if o.Quiet |> not then
-      let mrid = job.MaxRecordId()
-      if n < o.Cap then
-        cp $"\fg{n}\f0 / \fb{o.Cap}\f0 records (max=\fy{mrid}\f0)."
-      else
-        cp $"\fr{n}\f0 / \fb{o.Cap}\f0 records (max=\fy{mrid}\f0). \foMore available\f0."
+    let mrid = job.MaxRecordId()
+    if n < o.Cap then
+      cp $"\fg{n}\f0 / \fb{o.Cap}\f0 records (max=\fy{mrid}\f0)."
+    else
+      cp $"\fr{n}\f0 / \fb{o.Cap}\f0 records (max=\fy{mrid}\f0). \foMore available\f0."
   0
 
