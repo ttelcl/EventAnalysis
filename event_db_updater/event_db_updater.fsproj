@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- This prevents other language resources being emitted -->
+    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="ColorPrint.fs" />
+    <Compile Include="CommonTools.fs" />
+    <Compile Include="PrintUtils.fs" />
+    <Compile Include="ExceptionTool.fs" />
+    <Compile Include="LoggedRun.fs" />
+    <Compile Include="Usage.fs" />
+    <Compile Include="AppUpdate.fs" />
+    <Compile Include="Program.fs" />
+    <None Include="README.md" />
+  </ItemGroup>
+
+  <ItemGroup />
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="6.0.3" />
+  </ItemGroup>
+
+</Project>

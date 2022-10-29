@@ -20,7 +20,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lcl.EventLog", "Lcl.EventLo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnitTest.Lcl.EventLog", "UnitTest.Lcl.EventLog\UnitTest.Lcl.EventLog.csproj", "{871A82F7-45E4-4BD1-BE74-A0A3BEE68C83}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "eventtool", "eventtool\eventtool.fsproj", "{1FEC05F8-BF25-4726-9291-A98E80DD81DB}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "eventtool", "eventtool\eventtool.fsproj", "{1FEC05F8-BF25-4726-9291-A98E80DD81DB}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "event_db_updater", "event_db_updater\event_db_updater.fsproj", "{39363468-9756-4997-AE09-EF77BBA0771B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -40,6 +42,10 @@ Global
 		{1FEC05F8-BF25-4726-9291-A98E80DD81DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1FEC05F8-BF25-4726-9291-A98E80DD81DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1FEC05F8-BF25-4726-9291-A98E80DD81DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39363468-9756-4997-AE09-EF77BBA0771B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39363468-9756-4997-AE09-EF77BBA0771B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39363468-9756-4997-AE09-EF77BBA0771B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39363468-9756-4997-AE09-EF77BBA0771B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -48,6 +54,7 @@ Global
 		{BF7FC457-14E7-45DF-81B2-4CFCD18ED6C8} = {D108D140-CEE6-462C-BB40-CF94DFCD02FE}
 		{871A82F7-45E4-4BD1-BE74-A0A3BEE68C83} = {A2D3707C-6DE6-4758-B3C4-7BF3DED50343}
 		{1FEC05F8-BF25-4726-9291-A98E80DD81DB} = {7EC54BB7-0787-4307-9036-3360062CBB36}
+		{39363468-9756-4997-AE09-EF77BBA0771B} = {7EC54BB7-0787-4307-9036-3360062CBB36}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B1494EEF-02A8-43AD-9811-14BF25EBC0FF}
