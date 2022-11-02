@@ -14,9 +14,11 @@ let rec run arglist =
     verbose <- true
     rest |> run
   | "--help" :: _
-  | "-h" :: _
+  | "-h" :: _ ->
+    usage "all"
+    0  // program return status code to the operating system; 0 == "OK"
   | [] ->
-    usage verbose
+    usage (if verbose then "all" else "")
     0  // program return status code to the operating system; 0 == "OK"
   | "channels" :: rest ->
     rest |> AppChannels.run

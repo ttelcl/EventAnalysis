@@ -21,6 +21,9 @@ let run args =
     | "-v" :: rest ->
       verbose <- true
       rest |> parsemore o
+    | "-h" :: _ ->
+      Usage.usage "update"
+      exit 0
     | "-q" :: rest ->
       // vestigial option from an older version: ignore
       rest |> parsemore o

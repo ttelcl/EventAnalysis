@@ -34,6 +34,9 @@ let run args =
     | "-v" :: rest ->
       verbose <- true
       rest |> parsemore o
+    | "-h" :: _ ->
+      Usage.usage "init"
+      exit 0
     | "-job" :: jnm :: rest ->
       if o.AutoJobName then
         failwith "-job and -J are mutually exclusive"

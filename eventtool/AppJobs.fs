@@ -21,6 +21,9 @@ let run args =
     | "-v" :: rest ->
       verbose <- true
       rest |> parsemore o
+    | "-h" :: _ ->
+      Usage.usage "jobs"
+      exit 0
     | "-M" :: rest ->
       if o.Machine |> String.IsNullOrEmpty |> not then
         failwith "-M and -m are mutually exclusive"

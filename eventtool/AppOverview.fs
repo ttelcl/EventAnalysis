@@ -13,7 +13,7 @@ open CommonTools
 type private Options = {
   JobName: string
   MachineName: string
-  Save: bool
+  Save: bool // NYI!
 }
 
 let run args =
@@ -22,6 +22,9 @@ let run args =
     | "-v" :: rest ->
       verbose <- true
       rest |> parsemore o
+    | "-h" :: _ ->
+      Usage.usage "overview"
+      exit 0
     | "-save" :: rest ->
       rest |> parsemore {o with Save = true}
     | "-job" :: jnm :: rest
@@ -31,6 +34,7 @@ let run args =
     | "-m" :: mnm :: rest ->
       rest |> parsemore {o with MachineName = mnm}
     | [] ->
+      cp "\frNo job or channel (\fg-job\fr) provided\f0. Use \foeventtool jobs\f0 to find known job names."
       if o.JobName |> String.IsNullOrEmpty then
         failwith "No job (or channel) specified"
       o

@@ -24,6 +24,9 @@ let run args =
     | "-v" :: rest ->
       verbose <- true
       rest |> parsemore o
+    | "-h" :: _ ->
+      Usage.usage "samples"
+      exit 0
     | "-n" :: ntxt :: rest ->
       let n = ntxt |> Int32.Parse
       if n <= 0 then
