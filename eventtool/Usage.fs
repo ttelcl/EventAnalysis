@@ -43,7 +43,7 @@ let usage targetCommand =
       cp "   \fg-job \fc<jobname>\f0       The name of a job or channel"
       cp "   \fg-cap \fc<n>\f0             The maximum number of events to copy"
   if targetMatch "overview" then
-    cp "\foeventtool \fyoverview\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0]"
+    cp "\foeventtool \fyoverview\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-nosize\f0]"
     //  [\fg-save\f0]
     cp "   Print event and task statistics and settings for the channel."
     if detailed then

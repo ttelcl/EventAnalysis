@@ -157,7 +157,7 @@ namespace Lcl.EventLog.Jobs
     /// one per unique (event ID, task ID) combination (usually that
     /// means one row per event ID)
     /// </summary>
-    public IReadOnlyList<DbOverview> GetOverview()
+    public IReadOnlyList<DbOverview> GetOverview(bool includeSize)
     {
       if(!HasDb)
       {
@@ -165,7 +165,7 @@ namespace Lcl.EventLog.Jobs
       }
       using(var db = OpenInnerDatabase(false))
       {
-        return db.GetOverview();
+        return includeSize ? db.GetOverview() : db.GetOverviewWithoutSize();
       }
     }
 
