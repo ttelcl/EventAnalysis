@@ -60,7 +60,7 @@ let run args =
         if o.JobName |> String.IsNullOrEmpty then
           let jobname =
             if o.ChannelName |> EventJobConfig.IsValidJobName then
-              o.ChannelName
+              o.ChannelName.ToLowerInvariant()
             else
               o.ChannelName |> deriveJobName
           if o.AutoJobName then
