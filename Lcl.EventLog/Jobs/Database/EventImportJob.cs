@@ -79,7 +79,15 @@ namespace Lcl.EventLog.Jobs.Database
       }
       var recordId = elr.RecordId.Value;
       var taskId = elr.Task ?? 0;
-      var taskDescription = elr.TaskDisplayName;
+      string? taskDescription = null;
+      try
+      {
+        taskDescription = elr.TaskDisplayName;
+      }
+      catch(Exception ex)
+      {
+        Trace.TraceInformation("Ignoring metadata lookup exception: " + ex.Message);
+      }
       int eventVersion = elr.Version ?? 0;
       var stamp = elr.TimeCreated.Value;
       // observe even ignored events!
