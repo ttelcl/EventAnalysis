@@ -32,6 +32,9 @@ let rec run arglist =
     rest |> AppJobs.run
   | "samples" :: rest ->
     rest |> AppSamples.run
+  | "plc-dump" :: rest
+  | "plcdump" :: rest ->
+    rest |> AppPlcDump.run
   | x :: _ ->
     cp $"\foUnknown command \fr{x}\f0."
     1

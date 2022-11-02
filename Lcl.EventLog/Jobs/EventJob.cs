@@ -136,6 +136,23 @@ namespace Lcl.EventLog.Jobs
     }
 
     /// <summary>
+    /// Return the minimum imported record ID for this job's channel,
+    /// or 0 if no records were imported or the database has not been
+    /// initialized yet.
+    /// </summary>
+    public long MinRecordId()
+    {
+      if(!HasDb)
+      {
+        return 0L;
+      }
+      using(var db = OpenInnerDatabase(false))
+      {
+        return db.MinRecordId() ?? 0L;
+      }
+    }
+
+    /// <summary>
     /// Get an overview of the data: a list of DbOverview records, 
     /// one per unique (event ID, task ID) combination (usually that
     /// means one row per event ID)

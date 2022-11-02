@@ -22,6 +22,7 @@
     <Compile Include="AppOverview.fs" />
     <Compile Include="AppJobs.fs" />
     <Compile Include="AppSamples.fs" />
+    <Compile Include="AppPlcDump.fs" />
     <Compile Include="Program.fs" />
     <None Include="README.md" />
   </ItemGroup>

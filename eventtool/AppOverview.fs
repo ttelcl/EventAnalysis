@@ -34,8 +34,8 @@ let run args =
     | "-m" :: mnm :: rest ->
       rest |> parsemore {o with MachineName = mnm}
     | [] ->
-      cp "\frNo job or channel (\fg-job\fr) provided\f0. Use \foeventtool jobs\f0 to find known job names."
       if o.JobName |> String.IsNullOrEmpty then
+        cp "\frNo job or channel (\fg-job\fr) provided\f0. Use \foeventtool jobs\f0 to find known job names."
         failwith "No job (or channel) specified"
       o
     | x :: _ ->

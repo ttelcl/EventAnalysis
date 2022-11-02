@@ -1,9 +1,10 @@
 ﻿// (c) 2022  ttelcl / ttelcl
 module Usage
 
+open System
+
 open CommonTools
 open ColorPrint
-open System
 
 let usage targetCommand =
   let all =
@@ -47,6 +48,9 @@ let usage targetCommand =
     cp "   Print event and task statistics and settings for the channel."
     if detailed then
       ()
+  if targetMatch "plc-dump" then
+    cp "\foeventtool \fyplc-dump\f0 [\fg-from \fc<rid>\f0] [\fg-to \fc<rid>\f0] [\fg-job \fc<job>\f0 {\fg-e \fc<eid>\f0}] [\fg-m \fc<machine>\f0]"
+    cp "   Backward compat event dump file export (if -job and -e are omitted)"
   if targetMatch "samples" then
     cp "\foeventtool \fysamples\f0 \fg-job \fc<jobname>\f0 \fg-e \fc<event-id>\f0 [\fg-n \fc<n>\f0] [\fg-m \fc<machine>\f0]"
     cp "   Extract sample events from a store"

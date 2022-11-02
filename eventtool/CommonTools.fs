@@ -44,7 +44,8 @@ let startFileBinary name =
   File.Create(tmp)
 
 /// Finish the the file that was written starting from 'startfile' (and create a backup
-/// of the previous version if applicable)
+/// of the previous version if applicable). For scenarios where you do not know the
+/// name in advance, use finishFile2 instead.
 let finishFile name =
   let tmp = name + ".tmp"
   if File.Exists(name) then
@@ -52,6 +53,19 @@ let finishFile name =
     File.Replace(tmp, name, bak)
   else
     File.Move(tmp, name)
+
+/// Finish the the file that was written starting from 'startfile' named
+/// using the given 'scratchName' (scratchName.tmp), and rename it to the given
+/// final name 'trueName' (creating a backup trueName.bak if necessary).
+/// This function helps in scenarios where the final name can be derived only
+/// after writing.
+let finishFile2 trueName scratchName =
+  let tmp = scratchName + ".tmp"
+  if File.Exists(trueName) then
+    let bak = trueName + ".bak"
+    File.Replace(tmp, trueName, bak)
+  else
+    File.Move(tmp, trueName)
 
 /// General purpose mutable verbosity flag
 let mutable verbose = false
