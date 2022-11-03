@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.XPath;
@@ -71,6 +72,15 @@ namespace Lcl.EventLog.Utilities
       {
         return new XPathDocument(xr);
       }
+    }
+
+    /// <summary>
+    /// Returns <paramref name="xml"/> with any text that looks like a default namespace
+    /// declaration removed.
+    /// </summary>
+    public static string StripDefaultNamespaces(string xml)
+    {
+      return Regex.Replace(xml, "xmlns\\s*=\\s*((\"[^\"]+\")|('[^']+'))", " ");
     }
 
     /// <summary>
