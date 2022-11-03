@@ -41,9 +41,11 @@ namespace Lcl.EventLog.Utilities
     }
 
     /// <summary>
-    /// Evaluate the XPath expression to a string. The expression is wrapped in
-    /// a "string()" XPath function call.
+    /// Evaluate the XPath expression to a string.
+    /// The expression is wrapped in a "string()" XPath function call.
     /// Non-existent nodes will result in an empty string being returned.
+    /// The prefixes :sys:, :data: and :udata: transform the expression like
+    /// EvalSystem, EvalData and EvalUserData
     /// </summary>
     /// <remarks>
     /// Since XPath has no concept of "null", distinguishing a missing node from
@@ -51,7 +53,37 @@ namespace Lcl.EventLog.Utilities
     /// </remarks>
     public string Eval(string xpath)
     {
+      if(xpath.StartsWith(":"))
+      {
+        var parts = xpath.Split(new[] { ':' }, 3);
+        if(parts.Length == 3)
+        {
+          var prefixKey = parts[1];
+          var suffix = parts[2];
+          xpath = prefixKey switch {
+            "sys" => "/Event/System/" + suffix,
+            "data" => $"/Event/EventData/Data[@Name='{suffix}']",
+            "udata" => "/Event/UserData/*/" + suffix,
+            _ => throw new InvalidOperationException(
+                            $"Unrecognized expression prefix ':{prefixKey}:'"),
+          };
+        }
+      }
       return (string)CreateNavigator().Evaluate("string(" + xpath + ")");
+    }
+
+    /// <summary>
+    /// Like eval, but throws an exception if the return value is null or empty
+    /// </summary>
+    public string EvalNotEmpty(string xpath)
+    {
+      var value = Eval(xpath);
+      if(String.IsNullOrEmpty(value))
+      {
+        throw new InvalidOperationException(
+          $"Required content is missing for query: {xpath}");
+      }
+      return value;
     }
 
     /// <summary>

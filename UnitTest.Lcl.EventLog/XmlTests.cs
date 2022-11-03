@@ -61,15 +61,19 @@ namespace UnitTest.Lcl.EventLog
       var dissector = new XmlDissector(__sample1);
       Assert.Equal("4689", dissector.Eval("/Event/System/EventID"));
       Assert.Equal("4689", dissector.EvalSystem("EventID"));
+      Assert.Equal("4689", dissector.Eval(":sys:EventID"));
       Assert.Equal("", dissector.Eval("/Event/System/DoesNotExist"));
       Assert.Equal("", dissector.EvalSystem("DoesNotExist"));
+      Assert.Equal("", dissector.Eval(":sys:DoesNotExist"));
       Assert.Equal("Microsoft-Windows-Security-Auditing", dissector.Eval("/Event/System/Provider/@Name"));
       Assert.Equal("Microsoft-Windows-Security-Auditing", dissector.EvalSystem("Provider/@Name"));
+      Assert.Equal("Microsoft-Windows-Security-Auditing", dissector.Eval(":sys:Provider/@Name"));
       Assert.Equal("Microsoft-Windows-Security-Auditing", dissector.EvalSystem("Provider", "Name"));
       Assert.Equal("{54849625-5478-4994-a5ba-3e3b0328c30d}", dissector.Eval("/Event/System/Provider/@Guid"));
       Assert.Equal("{54849625-5478-4994-a5ba-3e3b0328c30d}", dissector.EvalSystem("Provider", "Guid"));
       Assert.Equal("0xa3fc", dissector.Eval("/Event/EventData/Data[@Name='ProcessId']"));
       Assert.Equal("0xa3fc", dissector.EvalData("ProcessId"));
+      Assert.Equal("0xa3fc", dissector.Eval(":data:ProcessId"));
       Assert.Equal(41980L, dissector.Eval("/Event/EventData/Data[@Name='ProcessId']").AsInteger());
       Assert.Equal(41980L, dissector.EvalData("ProcessId").AsInteger());
       Assert.Equal(0x8020000000000000UL, dissector.Eval("/Event/System/Keywords").AsUnsigned());
@@ -112,6 +116,7 @@ namespace UnitTest.Lcl.EventLog
       var dissector = new XmlDissector(__sample2);
       Assert.Equal("KB5016616", dissector.Eval("/Event/UserData/*/PackageIdentifier"));
       Assert.Equal("KB5016616", dissector.EvalUserData("PackageIdentifier"));
+      Assert.Equal("KB5016616", dissector.Eval(":udata:PackageIdentifier"));
     }
 
   }

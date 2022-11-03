@@ -80,5 +80,29 @@ namespace Lcl.EventLog.Utilities
         : DateTimeOffset.Parse(txt, null, DateTimeStyles.RoundtripKind);
     }
 
+    /// <summary>
+    /// Verify that the argument is not null nor empty, throwing an
+    /// exception otherwise
+    /// </summary>
+    public static string RequireNotEmpty(this string? txt)
+    {
+      if(String.IsNullOrEmpty(txt))
+      {
+        throw new InvalidOperationException("Required data is missing");
+      }
+      return txt!;
+    }
+
+    /// <summary>
+    /// Transform empty inputs to null, leave other inputs unchanged
+    /// </summary>
+    public static string? EmptyNull(this string? txt)
+    {
+      if(String.IsNullOrEmpty(txt))
+      {
+        return null;
+      }
+      return txt!;
+    }
   }
 }
