@@ -14,6 +14,7 @@ using Xunit.Abstractions;
 
 using Lcl.EventLog.Jobs.Database;
 using Lcl.EventLog.Utilities;
+using Lcl.EventLog.Utilities.Xml;
 
 namespace UnitTest.Lcl.EventLog
 {
@@ -117,6 +118,57 @@ namespace UnitTest.Lcl.EventLog
       Assert.Equal("KB5016616", dissector.Eval("/Event/UserData/*/PackageIdentifier"));
       Assert.Equal("KB5016616", dissector.EvalUserData("PackageIdentifier"));
       Assert.Equal("KB5016616", dissector.Eval(":udata:PackageIdentifier"));
+    }
+
+    [Fact]
+    public void XmlQueryTest()
+    {
+      var transforms = TransformRegistry.Default;
+      var dissector = new XmlDissector(__sample1);
+      var queryUserId = new XmlEventQuery(
+        "userid",
+        ":data:SubjectUserSid");
+      var userid = queryUserId.Evaluate(dissector, transforms);
+      Assert.Equal("S-1-5-FOO-BAR", userid);
+      var queryPidRaw = new XmlEventQuery(
+        "pid-raw",
+        ":data:ProcessId",
+        "");
+      var pidRaw = queryPidRaw.Evaluate(dissector, transforms);
+      Assert.Equal("0xa3fc", pidRaw);
+      var queryPidDecimal = new XmlEventQuery(
+        "pid-dec",
+        ":data:ProcessId",
+        "unsigned,notempty");
+      var pidDecimal = queryPidDecimal.Evaluate(dissector, transforms);
+      Assert.Equal("41980", pidDecimal);
+    }
+
+    [Fact]
+    public void XmlQueryTestJson()
+    {
+      var transforms = TransformRegistry.Default;
+      var dissector = new XmlDissector(__sample1);
+      var queryUserId = XmlEventQuery.FromJson(@"{
+  ""label"": ""userid"", 
+  ""expression"": "":data:SubjectUserSid""
+}");
+      var userid = queryUserId.Evaluate(dissector, transforms);
+      Assert.Equal("S-1-5-FOO-BAR", userid);
+      var queryPidRaw = XmlEventQuery.FromJson(@"{
+  ""label"": ""pid-raw"", 
+  ""expression"": "":data:ProcessId"",
+  ""transforms"": """"
+}");
+      var pidRaw = queryPidRaw.Evaluate(dissector, transforms);
+      Assert.Equal("0xa3fc", pidRaw);
+      var queryPidDecimal = XmlEventQuery.FromJson(@"{
+  ""label"": ""pid-raw"", 
+  ""expression"": "":data:ProcessId"",
+  ""transforms"": ""unsigned,notempty""
+}");
+      var pidDecimal = queryPidDecimal.Evaluate(dissector, transforms);
+      Assert.Equal("41980", pidDecimal);
     }
 
   }
