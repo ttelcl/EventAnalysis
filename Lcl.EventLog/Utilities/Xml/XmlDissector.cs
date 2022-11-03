@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.XPath;
 
-namespace Lcl.EventLog.Utilities
+namespace Lcl.EventLog.Utilities.Xml
 {
   /// <summary>
   /// Wraps an XML document (or fragment) and provides access to it via
@@ -97,7 +97,7 @@ namespace Lcl.EventLog.Utilities
     /// The name of the attribute inside the selected element to evaluate, or null
     /// (default) to evaluate the element itself.
     /// </param>
-    public string EvalSystem(string element, string? attribute=null)
+    public string EvalSystem(string element, string? attribute = null)
     {
       return String.IsNullOrEmpty(attribute)
         ? Eval($"/Event/System/{element}")

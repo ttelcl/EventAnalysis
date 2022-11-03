@@ -10,7 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Lcl.EventLog.Utilities
+namespace Lcl.EventLog.Utilities.Xml
 {
   /// <summary>
   /// Static methods for converting string values from XML records
