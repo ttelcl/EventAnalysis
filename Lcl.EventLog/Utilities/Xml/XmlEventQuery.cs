@@ -14,10 +14,52 @@ using Newtonsoft.Json;
 namespace Lcl.EventLog.Utilities.Xml
 {
   /// <summary>
+  /// The structure of XmlEventQuery minus the Label; used for serialization
+  /// when the label is implied by a dictionary key
+  /// </summary>
+  public class ProtoXmlEventQuery
+  {
+    /// <summary>
+    /// Create a ProtoXmlEventQuery
+    /// </summary>
+    public ProtoXmlEventQuery(
+      string expression,
+      string? transforms = null)
+    {
+      Expression = expression;
+      Transforms = transforms ?? String.Empty;
+    }
+
+    /// <summary>
+    /// The XPath query, optionally prefixed with :sys:, :data: or :udata:.
+    /// The query will be executed against the Event XML stripped from default
+    /// namespaces.
+    /// </summary>
+    [JsonProperty("expression")]
+    public string Expression { get; }
+
+    /// <summary>
+    /// Identifies an optional type or validation transform name, or
+    /// comma separated list of names.
+    /// </summary>
+    [JsonProperty("transforms")]
+    public string Transforms { get; }
+
+    /// <summary>
+    /// Whether or not the 'transform' field should be serialized
+    /// </summary>
+    public bool ShouldSerializeTransforms()
+    {
+      return !String.IsNullOrEmpty(Transforms);
+    }
+
+  }
+
+  /// <summary>
   /// A single field query for an event XML document.
   /// Intended for JSON serialization.
   /// </summary>
-  public class XmlEventQuery
+  public class XmlEventQuery : ProtoXmlEventQuery
   {
     /// <summary>
     /// Create a new XmlEventQuery
@@ -26,10 +68,9 @@ namespace Lcl.EventLog.Utilities.Xml
       string label,
       string expression,
       string? transforms = null)
+      : base(expression, transforms)
     {
       Label = label;
-      Expression = expression;
-      Transforms = transforms ?? String.Empty;
     }
 
     /// <summary>
@@ -51,29 +92,6 @@ namespace Lcl.EventLog.Utilities.Xml
     /// </summary>
     [JsonProperty("label")]
     public string Label { get; }
-
-    /// <summary>
-    /// The XPath query, optionally prefixed with :sys:, :data: or :udata:.
-    /// The query will be executed against the Event XML stripped from default
-    /// namespaces.
-    /// </summary>
-    [JsonProperty("expression")]
-    public string Expression { get; }
-
-    /// <summary>
-    /// Identifies an optional type or validation transform name, or
-    /// comma separated list of names.
-    /// </summary>
-    [JsonProperty("transforms")]
-    public string Transforms { get; }
-
-    /// <summary>
-    /// Whether or not the 'transform' field should be serialized
-    /// </summary>
-    public bool ShouldSerializeTransform()
-    {
-      return !String.IsNullOrEmpty(Transforms);
-    }
 
     /// <summary>
     /// Evaluate this expression on the XML stored in the provided
