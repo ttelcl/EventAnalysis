@@ -2,42 +2,43 @@
 
 ## Version 2
 
-File name structure: `<job>.raw.sqlite3`
+File name structure: `<job>.raw.sqlite3`.
 
-## Table EventId
+## Table "ProviderInfo"
 
-Now just an index of observed distinct Event IDs
-
-### Columns
-
-|Column|Type|PK|Notes|
-|---|---|---|---|
-|eid|Integer|*|Event ID|
-
-
-## Table EventIdEx
-
-Unique combinations of provider name, event ID, task ID,
-task name. Note that provider GUIDs are optional!
-The expectation is that each event ID appears only once,
-but that is not guaranteed!
+Lookup for observed event providers.
 
 ### Columns
 
 |Column|Type|PK|K2|Notes|
 |---|---|---|---|---|
-|etp|Integer|*||Row key for this table (autoincrement)|
+|prvid|integer|*||row ID|
+|prvname|string||*|provider name|
+|prvguid|string|||Nullable, provider guid|
+
+## Table "TaskInfo"
+
+Maps each unique combination of Event ID, Event Version, 
+Task ID, and Provider to a task description. The task description
+is null if not yet known, an empty string if digging it up failed
+(and is expected to fail again)
+The expectation is that each event ID appears only once,
+but that is not guaranteed.
+
+### Columns
+
+|Column|Type|PK|K2|Notes|
+|---|---|---|---|---|
 |eid|Integer||*|Event ID|
-|ver|Integer||*|Event version|
+|ever|Integer||*|Event version|
 |task|Integer||*|Task ID|
-|provider|String||*|provider name|
-|prvguid|Guid/string|||provider GUID, may be null|
+|prvid|Integer||*|Provider ID (ref to ProviderInfo)|
 |taskname|string|||task description|
 
-Note that the lookup of the task name may cause an exception
+Note that the source lookup of the task name may cause an exception
 that needs defusing (observed in the "application" log)
 
-## Table "Operations"
+## Table "OperationInfo"
 
 Operation descriptions
 
@@ -45,14 +46,16 @@ Operation descriptions
 
 |Column|Type|PK|K2|Notes|
 |---|---|---|---|---|
-|ork|Integer|*||Row key for this table|
-|etp|Integer||*|Reference to EventIdEx|
-|op|Integer||*|operation ID|
+|eid|Integer||*|Event ID|
+|ever|Integer||*|Event version|
+|task|Integer||*|Task ID|
+|opid|Integer||*|operation ID|
+|prvid|Integer||*|Provider ID (ref to ProviderInfo)|
 |opname|string|||operation description|
 
 ## Table "EventXml"
 
-The raw event XML and nothing more. The key is to have
+The raw event XML and record ID and nothing more. The key is to have
 any interpretation and indexing in separate tables that
 just refer to this table.
 
@@ -65,19 +68,27 @@ just refer to this table.
 
 Note that the XML may occasionally be invalid because of
 the presence of control characters. For parsing make sure
-to disable character checking!
+to disable character checking.
 
 ## Table "EventHeader"
 
 The standard event information excluding the XML.
+Note that the fields implicitly reference info rows in each of
+ProviderInfo, TaskInfo and OperationInfo.
+Note that fields other than prvid are put here directly instead
+of using a lookup. This enables adding indexes if desired.
 
 ### Columns
 
 |Column|Type|PK|Notes|
 |---|---|---|---|
 |rid|Integer|*|Record ID, PK|
-|ork|Integer||Reference to Operations table, implying event, task, operation|
-|ts|Integer||Time stamp as ticks since Epoch|
+|stamp|Integer||Time stamp as ticks since Epoch|
+|eid|Integer||Event ID|
+|ever|Integer||Event version|
+|task|Integer||Task ID|
+|opid|Integer||operation ID|
+|prvid|Integer||Provider ID (ref to ProviderInfo)|
 
 
 
