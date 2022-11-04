@@ -58,7 +58,7 @@ let run args =
     cp $"\foNo job or channel named \fc{o.JobName}\fo found in machine data zone \fb{o.MachineName}\f0."
     failwith $"Unknown job or channel '{o.JobName}' in machine data zone '{o.MachineName}'"
   cp $"Job \fc{job.Configuration.Name}\f0 is channel \fg{job.Configuration.Channel}\f0 in machine zone \fb{edz.Machine}\f0."
-  cp $"Inspecting database \fy{job.RawDbFile}\f0."
+  cp $"Inspecting database \fy{job.RawDbFileV1}\f0."
   let overview = job.GetOverview(o.WithSize)
   if overview.Count = 0 then
     cp $"\foThe database appears to be empty\f0!"

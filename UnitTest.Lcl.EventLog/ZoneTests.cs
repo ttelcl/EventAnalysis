@@ -67,10 +67,10 @@ namespace UnitTest.Lcl.EventLog
       Assert.NotNull(testingJob);
       var fooJob = edz.TryOpenJob("foo");
       Assert.Null(fooJob);
-      Assert.False(testingJob.HasDb);
+      Assert.False(testingJob.HasDbV1);
       var redb = testingJob.OpenDatabase(true);
       Assert.NotNull(redb);
-      Assert.True(testingJob.HasDb);
+      Assert.True(testingJob.HasDbV1);
 
       Assert.Throws<InvalidOperationException>(
         () => {
@@ -105,10 +105,10 @@ namespace UnitTest.Lcl.EventLog
         true);
       var fillingJob = edz.TryOpenJob(jobName);
       Assert.NotNull(fillingJob);
-      Assert.False(fillingJob.HasDb);
+      Assert.False(fillingJob.HasDbV1);
       using(var db = fillingJob.OpenInnerDatabase(true))
       {
-        Assert.True(fillingJob.HasDb);
+        Assert.True(fillingJob.HasDbV1);
         var states = db.ReadEventStates();
         Assert.Empty(states);
         var n = fillingJob.UpdateDb(db);

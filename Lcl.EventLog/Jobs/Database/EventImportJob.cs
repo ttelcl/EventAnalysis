@@ -22,7 +22,7 @@ namespace Lcl.EventLog.Jobs.Database
   /// </summary>
   public class EventImportJob: IDisposable
   {
-    private readonly RawEventDb.OpenDb _db;
+    private readonly RawEventDbV1.OpenDb _db;
     private readonly SqliteTransaction _trx;
     private bool _disposed;
 
@@ -30,7 +30,7 @@ namespace Lcl.EventLog.Jobs.Database
     /// Create a new EventImportJob
     /// </summary>
     public EventImportJob(
-      RawEventDb.OpenDb db)
+      RawEventDbV1.OpenDb db)
     {
       _db = db;
       _trx = _db.Connection.BeginTransaction();

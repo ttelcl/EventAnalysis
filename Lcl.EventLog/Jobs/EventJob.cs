@@ -31,7 +31,7 @@ namespace Lcl.EventLog.Jobs
       Zone = zone;
       Configuration = configuration;
       JobFolder = Path.Combine(Zone.RootFolder, Configuration.Name);
-      RawDbFile = Path.Combine(JobFolder, $"{Configuration.Name}.raw-events.sqlite3");
+      RawDbFileV1 = Path.Combine(JobFolder, $"{Configuration.Name}.raw-events.sqlite3");
     }
 
     /// <summary>
@@ -50,14 +50,14 @@ namespace Lcl.EventLog.Jobs
     public string JobFolder { get; }
 
     /// <summary>
-    /// The filename for the raw event import DB
+    /// The filename for the raw event import DB, original version
     /// </summary>
-    public string RawDbFile { get; }
+    public string RawDbFileV1 { get; }
 
     /// <summary>
     /// True if the database file exists
     /// </summary>
-    public bool HasDb => File.Exists(RawDbFile);
+    public bool HasDbV1 => File.Exists(RawDbFileV1);
 
     /// <summary>
     /// Insert missing records into the database from the event log, taking into
@@ -113,7 +113,7 @@ namespace Lcl.EventLog.Jobs
     /// <exception cref="InvalidOperationException">
     /// When the zone is readonly.
     /// </exception>
-    public int UpdateDb(RawEventDb.OpenDb db, int cap = Int32.MaxValue)
+    public int UpdateDb(RawEventDbV1.OpenDb db, int cap = Int32.MaxValue)
     {
       return db.UpdateFrom(Configuration.Channel, cap);
     }
@@ -125,7 +125,7 @@ namespace Lcl.EventLog.Jobs
     /// </summary>
     public long MaxRecordId()
     {
-      if(!HasDb)
+      if(!HasDbV1)
       {
         return 0L;
       }
@@ -142,7 +142,7 @@ namespace Lcl.EventLog.Jobs
     /// </summary>
     public long MinRecordId()
     {
-      if(!HasDb)
+      if(!HasDbV1)
       {
         return 0L;
       }
@@ -159,7 +159,7 @@ namespace Lcl.EventLog.Jobs
     /// </summary>
     public IReadOnlyList<DbOverview> GetOverview(bool includeSize)
     {
-      if(!HasDb)
+      if(!HasDbV1)
       {
         return Array.Empty<DbOverview>();
       }
@@ -172,7 +172,7 @@ namespace Lcl.EventLog.Jobs
     /// <summary>
     /// Open the inner database. Make sure to Dispose() it after use.
     /// </summary>
-    public RawEventDb.OpenDb OpenInnerDatabase(bool writable)
+    public RawEventDbV1.OpenDb OpenInnerDatabase(bool writable)
     {
       var redb = OpenDatabase(writable);
       return redb.Open(writable);
@@ -197,14 +197,14 @@ namespace Lcl.EventLog.Jobs
     /// <exception cref="FileNotFoundException">
     /// When the DB did not exist yet and <paramref name="writable"/> = false.
     /// </exception>
-    public RawEventDb OpenDatabase(bool writable)
+    public RawEventDbV1 OpenDatabase(bool writable)
     {
       if(writable && Zone.ReadOnly)
       {
         throw new InvalidOperationException(
           $"Cannot open a writable DB in a read-only zone");
       }
-      if(!HasDb)
+      if(!HasDbV1)
       {
         if(writable)
         {
@@ -214,10 +214,10 @@ namespace Lcl.EventLog.Jobs
         {
           throw new FileNotFoundException(
             $"Cannot open a non-existing database as read-only",
-            RawDbFile);
+            RawDbFileV1);
         }
       }
-      return new RawEventDb(RawDbFile, writable, false);
+      return new RawEventDbV1(RawDbFileV1, writable, false);
     }
 
     /// <summary>
@@ -225,7 +225,7 @@ namespace Lcl.EventLog.Jobs
     /// </summary>
     public void InitDb()
     {
-      if(!HasDb)
+      if(!HasDbV1)
       {
         if(Zone.ReadOnly)
         {
@@ -235,7 +235,7 @@ namespace Lcl.EventLog.Jobs
         else
         {
           InitFolder();
-          var redb = new RawEventDb(RawDbFile, true, true);
+          var redb = new RawEventDbV1(RawDbFileV1, true, true);
           using(var db = redb.Open(true, true))
           {
             db.DbInit();

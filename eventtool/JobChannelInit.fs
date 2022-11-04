@@ -135,7 +135,7 @@ let run args =
     cp $"Saving \fy{fnm}\f0"
     zone.WriteConfig(cfg)
     let job = zone.OpenJob(o.JobName)
-    cp $"Creating channel DB \fb{job.RawDbFile}\f0"
+    cp $"Creating channel DB \fb{job.RawDbFileV1}\f0"
     job.InitDb()
     0
 

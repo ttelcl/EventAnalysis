@@ -39,7 +39,7 @@ namespace UnitTest.Lcl.EventLog
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
-      var redb = new RawEventDb(dbName, true, true);
+      var redb = new RawEventDbV1(dbName, true, true);
       using(var db = redb.Open(true, true))
       {
         db.DbInit();
@@ -58,7 +58,7 @@ namespace UnitTest.Lcl.EventLog
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
-      var redb = new RawEventDb(dbName, true, true);
+      var redb = new RawEventDbV1(dbName, true, true);
       using(var db = redb.Open(true, true))
       {
         db.DbInit();
@@ -120,7 +120,7 @@ namespace UnitTest.Lcl.EventLog
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
-      var redb = new RawEventDb(dbName, true, true);
+      var redb = new RawEventDbV1(dbName, true, true);
       using(var db = redb.Open(true, true))
       {
         db.DbInit();
@@ -167,7 +167,7 @@ namespace UnitTest.Lcl.EventLog
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
-      var redb = new RawEventDb(dbName, true, true);
+      var redb = new RawEventDbV1(dbName, true, true);
       using(var db = redb.Open(true, true))
       {
         db.DbInit();
@@ -270,7 +270,7 @@ namespace UnitTest.Lcl.EventLog
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
-      var redb = new RawEventDb(dbName, true, true);
+      var redb = new RawEventDbV1(dbName, true, true);
       using(var db = redb.Open(true, true))
       {
         db.DbInit();
@@ -400,7 +400,7 @@ namespace UnitTest.Lcl.EventLog
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
-      var redb = new RawEventDb(dbName, true, true);
+      var redb = new RawEventDbV1(dbName, true, true);
       using(var db = redb.Open(true, true))
       {
         db.DbInit();

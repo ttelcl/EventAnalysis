@@ -22,12 +22,12 @@ namespace Lcl.EventLog.Jobs.Database
   /// <summary>
   /// Interface for accessing a raw event database
   /// </summary>
-  public class RawEventDb
+  public class RawEventDbV1
   {
     /// <summary>
     /// Create a new RawEventDb
     /// </summary>
-    public RawEventDb(string fileName, bool allowWrite, bool allowCreate = false)
+    public RawEventDbV1(string fileName, bool allowWrite, bool allowCreate = false)
     {
       FileName = Path.GetFullPath(fileName);
       AllowWrite = allowWrite;

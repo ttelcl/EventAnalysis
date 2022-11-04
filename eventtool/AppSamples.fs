@@ -63,7 +63,7 @@ let run args =
   let job = edz.TryOpenJob(o.JobName)
   if job = null then
     failwith $"No job or channel '{o.JobName}' known for machine '{o.Machine}'"
-  if job.HasDb |> not then
+  if job.HasDbV1 |> not then
     failwith $"No data recorded yet for job '{o.JobName}'"
   let recordIds =
     use odb = job.OpenInnerDatabase(false)
