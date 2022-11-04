@@ -32,6 +32,7 @@ namespace Lcl.EventLog.Jobs
       Configuration = configuration;
       JobFolder = Path.Combine(Zone.RootFolder, Configuration.Name);
       RawDbFileV1 = Path.Combine(JobFolder, $"{Configuration.Name}.raw-events.sqlite3");
+      RawDbFileV2 = Path.Combine(JobFolder, $"{Configuration.Name}.raw.sqlite3");
     }
 
     /// <summary>
@@ -55,9 +56,19 @@ namespace Lcl.EventLog.Jobs
     public string RawDbFileV1 { get; }
 
     /// <summary>
-    /// True if the database file exists
+    /// The filename for the raw event import DB, new version
+    /// </summary>
+    public string RawDbFileV2 { get; }
+
+    /// <summary>
+    /// True if the V1 database file exists
     /// </summary>
     public bool HasDbV1 => File.Exists(RawDbFileV1);
+
+    /// <summary>
+    /// True if the V2 database file exists
+    /// </summary>
+    public bool HasDbV2 => File.Exists(RawDbFileV2);
 
     /// <summary>
     /// Insert missing records into the database from the event log, taking into

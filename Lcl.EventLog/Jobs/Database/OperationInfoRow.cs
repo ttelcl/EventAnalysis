@@ -14,25 +14,28 @@ using Lcl.EventLog.Utilities;
 namespace Lcl.EventLog.Jobs.Database
 {
   /// <summary>
-  /// Description of TaskInfoRow
+  /// Extra information on an Operation (in the context of a given
+  /// EventId, EventVersion, TaskId, Provider)
   /// </summary>
-  public class TaskInfoRow: IHasKey<ValueTuple<int, int, int, int>>
+  public class OperationInfoRow: IHasKey<ValueTuple<int, int, int, int, int>>
   {
     /// <summary>
-    /// Create a new TaskInfoRow
+    /// Create a new OperationInfoRow
     /// </summary>
-    public TaskInfoRow(
+    public OperationInfoRow(
       long eid,
       long ever,
       long task,
       long prvid,
-      string? taskdesc)
+      long opid,
+      string? opdesc)
     {
       EventId = (int)eid;
       EventVersion = (int)ever;
       TaskId = (int)task;
       ProviderId = (int)prvid;
-      TaskDescription = taskdesc;
+      OperationId = (int)opid;
+      OperationDescription=opdesc;
     }
 
     /// <summary>
@@ -56,13 +59,19 @@ namespace Lcl.EventLog.Jobs.Database
     public int ProviderId { get; }
 
     /// <summary>
+    /// The operation ID
+    /// </summary>
+    public int OperationId { get; }
+
+    /// <summary>
     /// The task description. Null indicates that no attempt has been made to
     /// discover it yet. An empty string may mean that an attempt was made
     /// but failed.
     /// </summary>
-    public string? TaskDescription { get; }
+    public string? OperationDescription { get; }
 
     /// <inheritdoc/>
-    public (int, int, int, int) Key => (EventId, EventVersion, TaskId, ProviderId);
+    public (int, int, int, int, int) Key => (EventId, EventVersion, TaskId, ProviderId, OperationId);
+
   }
 }

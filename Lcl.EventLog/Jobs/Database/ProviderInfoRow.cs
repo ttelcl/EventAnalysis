@@ -22,11 +22,11 @@ namespace Lcl.EventLog.Jobs.Database
     /// Create a new ProvidersRow
     /// </summary>
     public ProviderInfoRow(
-      int prvid,
+      long prvid,
       string prvname,
       string? prvguid)
     {
-      ProviderId = prvid;
+      ProviderId = (int)prvid;
       ProviderName = prvname;
       ProviderGuid = prvguid;
     }

@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -15,7 +16,6 @@ using Microsoft.Data.Sqlite;
 using Dapper;
 
 using Lcl.EventLog.Utilities;
-using System.Diagnostics.Eventing.Reader;
 
 namespace Lcl.EventLog.Jobs.Database
 {

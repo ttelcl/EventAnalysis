@@ -48,6 +48,61 @@ namespace UnitTest.Lcl.EventLog
     }
 
     [Fact]
+    public void CanCreateDbV2()
+    {
+      var dbName = Path.GetFullPath("cancreatedb-v2.sqlite3");
+      _output.WriteLine($"DB file is {dbName}");
+      if(File.Exists(dbName))
+      {
+        _output.WriteLine("Deleting existing DB before test");
+        File.Delete(dbName);
+      }
+      Assert.False(File.Exists(dbName));
+      var redb = new RawEventDbV2(dbName, true, true);
+      using(var db = redb.Open(true, true))
+      {
+        db.DbInit();
+      }
+      Assert.True(File.Exists(dbName));
+    }
+
+    [Fact]
+    public void ProviderInfoTest()
+    {
+      var dbName = Path.GetFullPath("providerinfo.sqlite3");
+      _output.WriteLine($"DB file is {dbName}");
+      if(File.Exists(dbName))
+      {
+        _output.WriteLine("Deleting existing DB before test");
+        File.Delete(dbName);
+      }
+      Assert.False(File.Exists(dbName));
+      var redb = new RawEventDbV2(dbName, true, true);
+      using(var db = redb.Open(true, true))
+      {
+        db.DbInit();
+      }
+      Assert.True(File.Exists(dbName));
+      using(var db = redb.Open(true))
+      {
+        var providers = db.ReadProviderInfo().ToList();
+        Assert.Empty(providers);
+        db.InsertProviderInfo(1, "MsiInstaller", null);
+        db.InsertProviderInfo(2, "MSSQL$SQLEXPRESS", null);
+        db.InsertProviderInfo(3, "Microsoft-Windows-RestartManager", "{0888e5ef-9b98-4695-979d-e92ce4247224}");
+        providers = db.ReadProviderInfo().ToList();
+        Assert.Equal(3, providers.Count);
+        Assert.Equal(1, providers[0].ProviderId);
+        Assert.Equal(2, providers[1].ProviderId);
+        Assert.Equal(3, providers[2].ProviderId);
+        Assert.Equal("MsiInstaller", providers[0].ProviderName);
+        Assert.Null(providers[0].ProviderGuid);
+        Assert.Equal("Microsoft-Windows-RestartManager", providers[2].ProviderName);
+        Assert.Equal("{0888e5ef-9b98-4695-979d-e92ce4247224}", providers[2].ProviderGuid);
+      }
+    }
+
+    [Fact]
     public void EventStatesTableTest()
     {
       var dbName = Path.GetFullPath("eventstates.sqlite3");

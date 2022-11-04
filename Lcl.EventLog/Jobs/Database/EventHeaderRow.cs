@@ -9,31 +9,43 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using Lcl.EventLog.Utilities;
-
 namespace Lcl.EventLog.Jobs.Database
 {
   /// <summary>
-  /// Description of TaskInfoRow
+  /// A row in the EventHeader table of the V2 database
   /// </summary>
-  public class TaskInfoRow: IHasKey<ValueTuple<int, int, int, int>>
+  public class EventHeaderRow
   {
     /// <summary>
-    /// Create a new TaskInfoRow
+    /// Create a new EventHeaderRow
     /// </summary>
-    public TaskInfoRow(
+    public EventHeaderRow(
+      long rid,
+      long stamp,
       long eid,
       long ever,
       long task,
       long prvid,
-      string? taskdesc)
+      long opid)
     {
+      RecordId = rid;
+      Stamp = stamp;
       EventId = (int)eid;
       EventVersion = (int)ever;
       TaskId = (int)task;
       ProviderId = (int)prvid;
-      TaskDescription = taskdesc;
+      OperationId = (int)opid;
     }
+
+    /// <summary>
+    /// The event record ID
+    /// </summary>
+    public long RecordId { get; }
+
+    /// <summary>
+    /// Timestamp in ticks since the Epoch
+    /// </summary>
+    public long Stamp { get; }
 
     /// <summary>
     /// The event ID
@@ -56,13 +68,9 @@ namespace Lcl.EventLog.Jobs.Database
     public int ProviderId { get; }
 
     /// <summary>
-    /// The task description. Null indicates that no attempt has been made to
-    /// discover it yet. An empty string may mean that an attempt was made
-    /// but failed.
+    /// The operation ID
     /// </summary>
-    public string? TaskDescription { get; }
+    public int OperationId { get; }
 
-    /// <inheritdoc/>
-    public (int, int, int, int) Key => (EventId, EventVersion, TaskId, ProviderId);
   }
 }

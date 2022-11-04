@@ -18,7 +18,6 @@ namespace Lcl.EventLog.Jobs.Database
   /// </summary>
   public class TaskInfoCache
   {
-    
     private readonly BackedMap<TaskInfoRow, ValueTuple<int, int, int, int>> _map;
 
     /// <summary>
@@ -45,12 +44,48 @@ namespace Lcl.EventLog.Jobs.Database
     }
 
     /// <summary>
+    /// Observe an event header row, potentially creating a new task info row
+    /// in this cache.
+    /// </summary>
+    /// <param name="ehr">
+    /// The record containing the fields to observe
+    /// </param>
+    /// <param name="descriptionLoader">
+    /// A function that loads the task description if needed. This is a function
+    /// because that load can be an expensive operation.
+    /// </param>
+    public void Observe(EventHeaderRow ehr, Func<string?> descriptionLoader)
+    {
+      var old = Find(ehr);
+      if(old == null || old.TaskDescription == null)
+      {
+        var description = descriptionLoader();
+        if(old == null || (description!=null && old.TaskDescription!=description))
+        {
+          // This "if" does not trigger in case the old record existed and the loader returned null
+          _map.Put(new TaskInfoRow(
+            ehr.EventId, ehr.EventVersion, ehr.TaskId, ehr.ProviderId,
+            description ?? old?.TaskDescription));
+        }
+      }
+    }
+
+    /// <summary>
     /// Find the existing row for the given eventId-eventVersion-taskId-providerId quadruplet,
     /// returning null if not found in the existing nor observed rows.
     /// </summary>
     public TaskInfoRow? Find(int eid, int ever, int task, int prvid)
     {
       return _map.Find((eid, ever, task, prvid));
+    }
+
+    /// <summary>
+    /// Find the existing row matching the given event record header, returning null
+    /// if not found
+    /// </summary>
+    public TaskInfoRow? Find(EventHeaderRow ehr)
+    {
+      return Find(ehr.EventId, ehr.EventVersion, ehr.TaskId, ehr.ProviderId);
     }
 
     /// <summary>
