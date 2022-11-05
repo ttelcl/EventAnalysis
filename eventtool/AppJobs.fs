@@ -60,7 +60,7 @@ let run args =
             ejob.HasDbV1, ejob.HasDbV2
         let v1tag = if hasV1 then "\fgV1.\f0" else "\frV1!\f0"
         let v2tag = if hasV2 then "\fgV2.\f0" else "\frV2!\f0"
-        cp $"  \fc%-20s{job.Name} {adminTag} {v1tag} {v2tag} \fg{job.Channel}"
+        cp $"  \fc%-20s{job.Name} {adminTag} {v1tag} {v2tag} \fy{job.Channel}"
   if o.All then
     let anchor = new EventDataZone(true)
     let configurations = anchor.SiblingZones() |> Seq.toList

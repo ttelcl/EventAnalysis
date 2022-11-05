@@ -37,7 +37,7 @@ let usage targetCommand =
       cp "   \fg-job \fc<jobname>\f0       The alias used to identify the channel."
       cp "   \fg-J\fx\f0                   Derive a job name from the channel name."
   if targetMatch "fix" then
-    cp "\foeventtool \fyfix\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0]"
+    cp "\foeventtool \fyfix\f0 [\fg-job \fc<jobname>\f0|\fg-all\f0] [\fg-m \fc<machine>\f0]"
     cp "   Create missing database files for the job."
   if targetMatch "update" then
     cp "\foeventtool \fyupdate\f0 {\fg-job \fc<jobname>\f0} \fg-cap \fc<n>\f0"
