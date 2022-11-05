@@ -10,7 +10,7 @@ open System.IO
 let runLogged logtag innerfn args =
   let logfilename = Path.Combine(Environment.CurrentDirectory, logtag + ".log")
   let lfi = new FileInfo(logfilename)
-  if lfi.Exists && lfi.Length > 100000L then
+  if lfi.Exists && lfi.Length > 40000L then
     // Cycle existing file
     let stamptag = lfi.LastWriteTime.ToString("yyyyMMdd-HHmmss")
     let logold = Path.Combine(Environment.CurrentDirectory, logtag + "." + stamptag + ".log")

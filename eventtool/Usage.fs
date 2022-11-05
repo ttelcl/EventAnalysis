@@ -40,11 +40,13 @@ let usage targetCommand =
     cp "\foeventtool \fyfix\f0 [\fg-job \fc<jobname>\f0|\fg-all\f0] [\fg-m \fc<machine>\f0]"
     cp "   Create missing database files for the job."
   if targetMatch "update" then
-    cp "\foeventtool \fyupdate\f0 {\fg-job \fc<jobname>\f0} \fg-cap \fc<n>\f0"
+    cp "\foeventtool \fyupdate\f0 {\fg-job \fc<jobname>\f0} \fg-cap \fc<n>\f0 [\fg-db1\f0] [\fg-db2\f0]"
     cp "   Run one or more jobs, transferring events from the event log channel into the job's DB."
     if detailed then
       cp "   \fg-job \fc<jobname>\f0       The name of a job or channel"
       cp "   \fg-cap \fc<n>\f0             The maximum number of events to copy"
+      cp "   \fg-db1 \fx   \f0             Update the legacy (V1) database"
+      cp "   \fg-db2 \fx   \f0             Update the new (V2) database"
   if targetMatch "overview" then
     cp "\foeventtool \fyoverview\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-nosize\f0]"
     //  [\fg-save\f0]
