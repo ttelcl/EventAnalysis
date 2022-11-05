@@ -265,6 +265,9 @@ ORDER BY t.eid, t.task").ToList().AsReadOnly();
       /// <param name="conflictHandling">
       /// Determines how handle insertion conflicts
       /// </param>
+      /// <returns>
+      /// Returns the number of records inserted.
+      /// </returns>
       public int PutEvents(
         IEnumerable<EventLogRecord> records,
         int cap = Int32.MaxValue,

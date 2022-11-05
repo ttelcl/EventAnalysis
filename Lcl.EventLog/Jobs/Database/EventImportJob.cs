@@ -11,14 +11,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using Lcl.EventLog.Utilities;
-
 using Microsoft.Data.Sqlite;
+
+using Lcl.EventLog.Utilities;
 
 namespace Lcl.EventLog.Jobs.Database
 {
   /// <summary>
-  /// Imports a series of events into a DB
+  /// Imports a series of events into a V1 DB
   /// </summary>
   public class EventImportJob: IDisposable
   {
@@ -161,24 +161,6 @@ namespace Lcl.EventLog.Jobs.Database
       {
         return false;
       }
-    }
-
-    /// <summary>
-    /// Process an event specified as XML. Note that task descriptions are not available
-    /// in this form
-    /// </summary>
-    /// <param name="xml">
-    /// The XML formatted event record
-    /// </param>
-    /// <returns>
-    /// True if inserted, false if rejected by the event filter
-    /// </returns>
-    /// <exception cref="NotImplementedException"></exception>
-    public bool ProcessEvent(string xml)
-    {
-      ThrowIfDisposed();
-      throw new NotImplementedException(
-        "Not yet implemented");
     }
 
     /// <summary>

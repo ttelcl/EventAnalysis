@@ -100,6 +100,35 @@ namespace Lcl.EventLog.Jobs
     }
 
     /// <summary>
+    /// Insert missing records into the V2 database from the event log, taking into
+    /// account the filter settings. This overload opens the inner db, performs
+    /// the update, then closes it again.
+    /// </summary>
+    /// <param name="cap">
+    /// The maximum number of records to insert
+    /// </param>
+    /// <returns>
+    /// The number of records inserted.
+    /// </returns>
+    /// <exception cref="EventLogNotFoundException">
+    /// Thrown if the event log does not exist
+    /// </exception>
+    /// <exception cref="UnauthorizedAccessException">
+    /// Thrown if the calling user does not have enough privileges to access
+    /// the log. Usually that means: admin elevation required.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// When the zone is readonly.
+    /// </exception>
+    public int UpdateDb2(int cap = Int32.MaxValue)
+    {
+      using(var db = OpenInnerDatabase2(true))
+      {
+        return UpdateDb2(db, cap);
+      }
+    }
+
+    /// <summary>
     /// Insert missing records into the database from the event log, taking into
     /// account the filter settings. This overload takes an already opened
     /// inner db as argument.
@@ -125,6 +154,36 @@ namespace Lcl.EventLog.Jobs
     /// When the zone is readonly.
     /// </exception>
     public int UpdateDb1(RawEventDbV1.OpenDb db, int cap = Int32.MaxValue)
+    {
+      return db.UpdateFrom(Configuration.Channel, cap);
+    }
+
+    /// <summary>
+    /// Insert missing records into the V2 database from the event log, taking into
+    /// account the filter settings. This overload takes an already opened
+    /// inner db as argument.
+    /// </summary>
+    /// <param name="db">
+    /// The already-opened inner database (for instance opened with
+    /// <see cref="OpenInnerDatabase1(bool)"/>)
+    /// </param>
+    /// <param name="cap">
+    /// The maximum number of records to insert
+    /// </param>
+    /// <returns>
+    /// The number of records inserted.
+    /// </returns>
+    /// <exception cref="EventLogNotFoundException">
+    /// Thrown if the event log does not exist
+    /// </exception>
+    /// <exception cref="UnauthorizedAccessException">
+    /// Thrown if the calling user does not have enough privileges to access
+    /// the log. Usually that means: admin elevation required.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// When the zone is readonly.
+    /// </exception>
+    public int UpdateDb2(OpenDbV2 db, int cap = Int32.MaxValue)
     {
       return db.UpdateFrom(Configuration.Channel, cap);
     }
@@ -181,11 +240,20 @@ namespace Lcl.EventLog.Jobs
     }
 
     /// <summary>
-    /// Open the inner database. Make sure to Dispose() it after use.
+    /// Open the inner V1 database. Make sure to Dispose() it after use.
     /// </summary>
     public RawEventDbV1.OpenDb OpenInnerDatabase1(bool writable)
     {
       var redb = OpenDatabase1(writable);
+      return redb.Open(writable);
+    }
+
+    /// <summary>
+    /// Open the inner V2 database. Make sure to Dispose() it after use.
+    /// </summary>
+    public OpenDbV2 OpenInnerDatabase2(bool writable)
+    {
+      var redb = OpenDatabase2(writable);
       return redb.Open(writable);
     }
 
@@ -229,6 +297,48 @@ namespace Lcl.EventLog.Jobs
         }
       }
       return new RawEventDbV1(RawDbFileV1, writable, false);
+    }
+
+    /// <summary>
+    /// Open the job's V2 database file, creating it if it did not yet exist.
+    /// To operate on the database use the Open() method of the returned
+    /// RawEventDb object, or use <see cref="OpenInnerDatabase2"/> to skip
+    /// the middle man.
+    /// </summary>
+    /// <param name="writable">
+    /// Whether to open the DB read-only or writable.
+    /// False also prevents database creation
+    /// </param>
+    /// <returns>
+    /// The database interface object.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// When passing <paramref name="writable"/> = true when the zone is readonly.
+    /// </exception>
+    /// <exception cref="FileNotFoundException">
+    /// When the DB did not exist yet and <paramref name="writable"/> = false.
+    /// </exception>
+    public RawEventDbV2 OpenDatabase2(bool writable)
+    {
+      if(writable && Zone.ReadOnly)
+      {
+        throw new InvalidOperationException(
+          $"Cannot open a writable DB in a read-only zone");
+      }
+      if(!HasDbV2)
+      {
+        if(writable)
+        {
+          InitDb();
+        }
+        else
+        {
+          throw new FileNotFoundException(
+            $"Cannot open a non-existing database as read-only",
+            RawDbFileV2);
+        }
+      }
+      return new RawEventDbV2(RawDbFileV2, writable, false);
     }
 
     /// <summary>

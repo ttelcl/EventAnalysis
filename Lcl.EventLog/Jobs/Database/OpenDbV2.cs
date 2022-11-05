@@ -6,12 +6,15 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
 using Dapper;
+
+using Lcl.EventLog.Utilities;
 
 using Microsoft.Data.Sqlite;
 
@@ -384,6 +387,66 @@ WHERE h.rid=@RecordId",
     }
 
     /// <summary>
+    /// Update the database from the named event log.
+    /// </summary>
+    /// <param name="eventLogName">
+    /// The name of the event log (a.k.a. "channel")
+    /// </param>
+    /// <param name="cap">
+    /// The maximum number of new records to import
+    /// </param>
+    /// <returns>
+    /// The number of records inserted. If this is equal to <paramref name="cap"/>
+    /// there may be more records to import
+    /// </returns>
+    public int UpdateFrom(
+      string eventLogName,
+      int cap = Int32.MaxValue)
+    {
+      var aboveRid = MaxRecordId();
+      var ers = new EventRecordSource(eventLogName);
+      return PutEvents(ers.ReadRecords(aboveRid), cap);
+    }
+
+    /// <summary>
+    /// Insert a batch of event records into the database (including updates
+    /// to the ProviderInfo, TaskInfo, and OperationInfo tables)
+    /// </summary>
+    /// <param name="records">
+    /// The sequence of records to import
+    /// </param>
+    /// <param name="cap">
+    /// The maximum number of records to import
+    /// (potentially leaving part of the input sequence
+    /// unhandled)
+    /// </param>
+    /// <returns>
+    /// Returns the number of records inserted.
+    /// </returns>
+    public int PutEvents(
+      IEnumerable<EventLogRecord> records,
+      int cap = Int32.MaxValue)
+    {
+      var n = 0;
+      using(var eij = new EventImportJob2(this))
+      {
+        foreach(var record in records)
+        {
+          if(eij.ProcessEvent(record))
+          {
+            n++;
+            if(n >= cap)
+            {
+              break;
+            }
+          }
+        }
+        eij.Commit();
+      }
+      return n;
+    }
+
+    /// <summary>
     /// Insert a new ProviderInfo record. This operation fails
     /// if the ProviderId or ProviderName already exists
     /// </summary>
@@ -397,6 +460,14 @@ VALUES (@PrvId, @PrvName, @PrvGuid)";
         PrvName = prvName,
         PrvGuid = prvGuid
       });
+    }
+
+    /// <summary>
+    /// Insert a new ProviderInfoRow
+    /// </summary>
+    public int InsertProviderInfoRow(ProviderInfoRow pir)
+    {
+      return InsertProviderInfoRow(pir.ProviderId, pir.ProviderName, pir.ProviderGuid);
     }
 
     /// <summary>
@@ -417,6 +488,14 @@ VALUES (@Eid, @Ever, @Task, @PrvId, @TaskDesc)",
     }
 
     /// <summary>
+    /// Insert a row into the TaskInfo table
+    /// </summary>
+    public int InsertTaskInfoRow(TaskInfoRow tir)
+    {
+      return InsertTaskInfoRow(tir.EventId, tir.EventVersion, tir.TaskId, tir.ProviderId, tir.TaskDescription);
+    }
+
+    /// <summary>
     /// Insert a row into the OperationInfo table
     /// </summary>
     public int InsertOperationInfoRow(int eid, int ever, int task, int prvid, int opid, string? opdesc)
@@ -432,6 +511,14 @@ VALUES (@Eid, @Ever, @Task, @PrvId, @OpId, @OpDesc)",
           OpId = opid,
           OpDesc = opdesc,
         });
+    }
+
+    /// <summary>
+    /// Insert a row into the OperationInfo table
+    /// </summary>
+    public int InsertOperationInfoRow(OperationInfoRow oir)
+    {
+      return InsertOperationInfoRow(oir.EventId, oir.EventVersion, oir.TaskId, oir.ProviderId, oir.OperationId, oir.OperationDescription);
     }
 
     /// <summary>
@@ -475,6 +562,17 @@ VALUES (@Rid, @Xml)"
     {
       InsertEventHeaderRow(rid, stamp, eid, ever, task, prvid, opid);
       InsertEventXml(rid, xml);
+    }
+
+    /// <summary>
+    /// Insert an event record (header + xml). Does not update task, operation or provider
+    /// tables.
+    /// </summary>
+    public void InsertEvent(EventHeaderRow ehr, string xml)
+    {
+      InsertEvent(
+        ehr.RecordId, ehr.Stamp, ehr.EventId, ehr.EventVersion, ehr.TaskId,
+        ehr.ProviderId, ehr.OperationId, xml);
     }
 
     private void InitTables()

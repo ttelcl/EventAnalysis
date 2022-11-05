@@ -112,7 +112,7 @@ namespace UnitTest.Lcl.EventLog
         var states = db.ReadEventStates();
         Assert.Empty(states);
         var n = fillingJob.UpdateDb1(db);
-        _output.WriteLine($"Inserted {n} records");
+        _output.WriteLine($"Inserted {n} records into V1 database");
         var overviews = db.GetOverview();
         foreach(var o in overviews)
         {
@@ -122,6 +122,62 @@ namespace UnitTest.Lcl.EventLog
           _output.WriteLine(
             $"({o.EventId}, {o.TaskId}): {o.EventCount,4}, {o.MinRid,5} - {o.MaxRid,5}, {o.IsEnabled}, '{label}', {tMax}");
         }
+      }
+    }
+
+    [Fact]
+    public void CanFillDatabase2()
+    {
+      var baseFolder = Environment.CurrentDirectory;
+      var machine = "TestZone02";
+      var jobName = "filling2";
+      var zoneFolder = Path.Combine(baseFolder, machine);
+      if(Directory.Exists(zoneFolder))
+      {
+        RecursiveDeleteFolder(new DirectoryInfo(zoneFolder));
+      }
+      Assert.False(Directory.Exists(zoneFolder));
+      var edz = new EventDataZone(false, machine, baseFolder);
+      Assert.True(Directory.Exists(zoneFolder));
+      edz.WriteConfig(
+        new EventJobConfig(jobName, "Microsoft-Windows-Time-Service/Operational", false),
+        true);
+      var fillingJob = edz.TryOpenJob(jobName);
+      Assert.NotNull(fillingJob);
+      Assert.False(fillingJob.HasDbV2);
+      using(var db = fillingJob.OpenInnerDatabase2(true))
+      {
+        Assert.True(fillingJob.HasDbV2);
+        var n = fillingJob.UpdateDb2(db);
+        _output.WriteLine($"Inserted {n} records into V2 database");
+      }
+    }
+
+    [Fact]
+    public void CanFillDatabase3()
+    {
+      var baseFolder = Environment.CurrentDirectory;
+      var machine = "TestZone03";
+      var jobName = "filling-application";
+      var zoneFolder = Path.Combine(baseFolder, machine);
+      if(Directory.Exists(zoneFolder))
+      {
+        RecursiveDeleteFolder(new DirectoryInfo(zoneFolder));
+      }
+      Assert.False(Directory.Exists(zoneFolder));
+      var edz = new EventDataZone(false, machine, baseFolder);
+      Assert.True(Directory.Exists(zoneFolder));
+      edz.WriteConfig(
+        new EventJobConfig(jobName, "Application", false),
+        true);
+      var fillingJob = edz.TryOpenJob(jobName);
+      Assert.NotNull(fillingJob);
+      Assert.False(fillingJob.HasDbV2);
+      using(var db = fillingJob.OpenInnerDatabase2(true))
+      {
+        Assert.True(fillingJob.HasDbV2);
+        var n = fillingJob.UpdateDb2(db, 1000);
+        _output.WriteLine($"Inserted {n} records into V2 database");
       }
     }
 
