@@ -41,8 +41,8 @@ let run args =
   let jobs = o.JobNames |> List.map zone.OpenJob
   for job in jobs do
     cpx $"Job \fg{job.Configuration.Name}\f0 (\fc{job.Configuration.Channel}\f0): "
-    let n = job.UpdateDb(o.Cap)
-    let mrid = job.MaxRecordId()
+    let n = job.UpdateDb1(o.Cap)
+    let mrid = job.MaxRecordId1()
     if n < o.Cap then
       cp $"\fg{n}\f0 / \fb{o.Cap}\f0 records (max=\fy{mrid}\f0)."
     else

@@ -68,7 +68,7 @@ namespace UnitTest.Lcl.EventLog
       var fooJob = edz.TryOpenJob("foo");
       Assert.Null(fooJob);
       Assert.False(testingJob.HasDbV1);
-      var redb = testingJob.OpenDatabase(true);
+      var redb = testingJob.OpenDatabase1(true);
       Assert.NotNull(redb);
       Assert.True(testingJob.HasDbV1);
 
@@ -106,12 +106,12 @@ namespace UnitTest.Lcl.EventLog
       var fillingJob = edz.TryOpenJob(jobName);
       Assert.NotNull(fillingJob);
       Assert.False(fillingJob.HasDbV1);
-      using(var db = fillingJob.OpenInnerDatabase(true))
+      using(var db = fillingJob.OpenInnerDatabase1(true))
       {
         Assert.True(fillingJob.HasDbV1);
         var states = db.ReadEventStates();
         Assert.Empty(states);
-        var n = fillingJob.UpdateDb(db);
+        var n = fillingJob.UpdateDb1(db);
         _output.WriteLine($"Inserted {n} records");
         var overviews = db.GetOverview();
         foreach(var o in overviews)

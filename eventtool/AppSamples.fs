@@ -66,7 +66,7 @@ let run args =
   if job.HasDbV1 |> not then
     failwith $"No data recorded yet for job '{o.JobName}'"
   let recordIds =
-    use odb = job.OpenInnerDatabase(false)
+    use odb = job.OpenInnerDatabase1(false)
     odb.ReadEventIdsTicks(eid = o.EventId)
     |> Seq.toArray
   cp $"Found \fg{recordIds.Length}\f0 records matching \fc-e {o.EventId}\f0"
@@ -79,7 +79,7 @@ let run args =
       let idx = ((recordIds.Length-1) * i) / (o.EventCount-1)
       recordIds[idx]
     let selection = Array.init (o.EventCount) picker
-    use odb = job.OpenInnerDatabase(false)
+    use odb = job.OpenInnerDatabase1(false)
     for rid in selection do
       let e = odb.ReadEvent(rid)
       if e = null then

@@ -112,8 +112,8 @@ let run args =
     else
       $"{o.MachineName}-{job.Configuration.Name}.", ".xml"
   let mask = $"{prefix}*-*{suffix}"
-  let maxrid = job.MaxRecordId()
-  let minrid = job.MinRecordId()
+  let maxrid = job.MaxRecordId1()
+  let minrid = job.MinRecordId1()
   let breakDownFileName (fullName:string) =
     let fnm = fullName |> Path.GetFileName
     let tag = fnm.Substring(prefix.Length, fnm.Length-prefix.Length-suffix.Length)
@@ -168,7 +168,7 @@ let run args =
         use w = scratchName |> startFile
         w.WriteLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>")
         w.WriteLine("<EventContainer>")
-        use odb = job.OpenInnerDatabase(false)
+        use odb = job.OpenInnerDatabase1(false)
         let records = odb.ReadEvents(ridMin=rid0, ridMax=rid1, reverse=true)
         for record in records do
           let eid = record.EventId
