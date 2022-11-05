@@ -14,9 +14,11 @@ using Lcl.EventLog.Utilities;
 namespace Lcl.EventLog.Jobs.Database
 {
   /// <summary>
-  /// Description of TaskInfoRow
+  /// Task information
   /// </summary>
-  public class TaskInfoRow: IHasKey<ValueTuple<int, int, int, int>>
+  public class TaskInfoRow: 
+    IHasKey<ValueTuple<int, int, int, int>>,
+    ITaskInfoKey, IProviderInfoKey
   {
     /// <summary>
     /// Create a new TaskInfoRow

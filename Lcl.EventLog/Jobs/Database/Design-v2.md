@@ -4,6 +4,8 @@
 
 File name structure: `<job>.raw.sqlite3`.
 
+----
+
 ## Table "ProviderInfo"
 
 Lookup for observed event providers.
@@ -15,6 +17,8 @@ Lookup for observed event providers.
 |prvid|integer|*||row ID|
 |prvname|string||*|provider name|
 |prvguid|string|||Nullable, provider guid|
+
+----
 
 ## Table "TaskInfo"
 
@@ -33,10 +37,12 @@ but that is not guaranteed.
 |ever|Integer||*|Event version|
 |task|Integer||*|Task ID|
 |prvid|Integer||*|Provider ID (ref to ProviderInfo)|
-|taskname|string|||task description|
+|taskdesc|string|||task description|
 
 Note that the source lookup of the task name may cause an exception
 that needs defusing (observed in the "application" log)
+
+----
 
 ## Table "OperationInfo"
 
@@ -51,7 +57,9 @@ Operation descriptions
 |task|Integer||*|Task ID|
 |opid|Integer||*|operation ID|
 |prvid|Integer||*|Provider ID (ref to ProviderInfo)|
-|opname|string|||operation description|
+|opdesc|string|||operation description|
+
+----
 
 ## Table "EventXml"
 
@@ -70,6 +78,8 @@ Note that the XML may occasionally be invalid because of
 the presence of control characters. For parsing make sure
 to disable character checking.
 
+----
+
 ## Table "EventHeader"
 
 The standard event information excluding the XML.
@@ -87,8 +97,8 @@ of using a lookup. This enables adding indexes if desired.
 |eid|Integer||Event ID|
 |ever|Integer||Event version|
 |task|Integer||Task ID|
-|opid|Integer||operation ID|
 |prvid|Integer||Provider ID (ref to ProviderInfo)|
+|opid|Integer||operation ID|
 
 
 

@@ -17,7 +17,9 @@ namespace Lcl.EventLog.Jobs.Database
   /// Extra information on an Operation (in the context of a given
   /// EventId, EventVersion, TaskId, Provider)
   /// </summary>
-  public class OperationInfoRow: IHasKey<ValueTuple<int, int, int, int, int>>
+  public class OperationInfoRow: 
+    IHasKey<ValueTuple<int, int, int, int, int>>, 
+    IOperationInfoKey, ITaskInfoKey, IProviderInfoKey
   {
     /// <summary>
     /// Create a new OperationInfoRow

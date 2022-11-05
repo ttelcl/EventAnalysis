@@ -12,30 +12,29 @@ using System.Threading.Tasks;
 namespace Lcl.EventLog.Jobs.Database
 {
   /// <summary>
-  /// A row in the EventXml table of the V2 database
+  /// A combination of an EventHeaderRow and an EventXmlRow
   /// </summary>
-  public class EventXmlRow: IEventKey
+  public class EventViewRow: EventHeaderRow, IEventKey
   {
     /// <summary>
-    /// Create a new EventXmlRow
+    /// Create a new EventViewRow
     /// </summary>
-    public EventXmlRow(
+    public EventViewRow(
       long rid,
+      long stamp,
+      long eid,
+      long ever,
+      long task,
+      long prvid,
+      long opid,
       string xml)
+      : base(rid, stamp, eid, ever, task, prvid, opid)
     {
-      RecordId = rid;
       Xml = xml;
     }
 
     /// <summary>
-    /// The record ID
-    /// </summary>
-    public long RecordId { get; }
-
-    /// <summary>
-    /// The full event record in XML form. Note that the string may
-    /// not be fully well-formed. In particular: disable the valid XML 
-    /// character checking.
+    /// The raw event XML
     /// </summary>
     public string Xml { get; }
 

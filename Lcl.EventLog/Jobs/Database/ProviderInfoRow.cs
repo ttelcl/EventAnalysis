@@ -16,7 +16,7 @@ namespace Lcl.EventLog.Jobs.Database
   /// <summary>
   /// Row in the Providers table (v2 model)
   /// </summary>
-  public class ProviderInfoRow
+  public class ProviderInfoRow: IProviderInfoKey
   {
     /// <summary>
     /// Create a new ProvidersRow

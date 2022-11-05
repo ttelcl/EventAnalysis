@@ -14,7 +14,7 @@ namespace Lcl.EventLog.Jobs.Database
   /// <summary>
   /// A row in the EventHeader table of the V2 database
   /// </summary>
-  public class EventHeaderRow
+  public class EventHeaderRow: IOperationInfoKey, ITaskInfoKey, IProviderInfoKey, IEventKey
   {
     /// <summary>
     /// Create a new EventHeaderRow
@@ -71,6 +71,6 @@ namespace Lcl.EventLog.Jobs.Database
     /// The operation ID
     /// </summary>
     public int OperationId { get; }
-
   }
+
 }
