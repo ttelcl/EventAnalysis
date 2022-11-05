@@ -21,6 +21,9 @@ let run args =
     | "-v" :: rest ->
       verbose <- true
       rest |> parsemore o
+    | "-h" :: _ ->
+      Usage.usage "jobs"
+      exit 0
     | "-M" :: rest ->
       if o.Machine |> String.IsNullOrEmpty |> not then
         failwith "-M and -m are mutually exclusive"
@@ -49,7 +52,15 @@ let run args =
             "\frAdmin\f0"
           else
             "\fk --- \f0"
-        cp $"  \fc%-20s{job.Name} {adminTag} \fg{job.Channel}"
+        let hasV1, hasV2 =
+          let ejob = edz.TryOpenJob(job.Name)
+          if ejob = null then
+            false, false
+          else
+            ejob.HasDbV1, ejob.HasDbV2
+        let v1tag = if hasV1 then "\fgV1.\f0" else "\frV1!\f0"
+        let v2tag = if hasV2 then "\fgV2.\f0" else "\frV2!\f0"
+        cp $"  \fc%-20s{job.Name} {adminTag} {v1tag} {v2tag} \fy{job.Channel}"
   if o.All then
     let anchor = new EventDataZone(true)
     let configurations = anchor.SiblingZones() |> Seq.toList

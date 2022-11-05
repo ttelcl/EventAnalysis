@@ -20,7 +20,6 @@ namespace Lcl.EventLog.Jobs.Database
   {
     private readonly BackedMap<TaskRow, ValueTuple<int,int>> _map;
 
-
     /// <summary>
     /// Create a new TaskTracker
     /// </summary>

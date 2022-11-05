@@ -14,9 +14,11 @@ let rec run arglist =
     verbose <- true
     rest |> run
   | "--help" :: _
-  | "-h" :: _
+  | "-h" :: _ ->
+    usage "all"
+    0  // program return status code to the operating system; 0 == "OK"
   | [] ->
-    usage verbose
+    usage (if verbose then "all" else "")
     0  // program return status code to the operating system; 0 == "OK"
   | "channels" :: rest ->
     rest |> AppChannels.run
@@ -28,6 +30,13 @@ let rec run arglist =
     rest |> AppUpdate.run
   | "jobs" :: rest ->
     rest |> AppJobs.run
+  | "samples" :: rest ->
+    rest |> AppSamples.run
+  | "plc-dump" :: rest
+  | "plcdump" :: rest ->
+    rest |> AppPlcDump.run
+  | "fix" :: rest ->
+    rest |> AppFix.run
   | x :: _ ->
     cp $"\foUnknown command \fr{x}\f0."
     1

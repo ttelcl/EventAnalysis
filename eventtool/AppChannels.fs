@@ -16,6 +16,9 @@ let run args =
     | "-v" :: rest ->
       verbose <- true
       rest |> parsemore o
+    | "-h" :: _ ->
+      Usage.usage "channels"
+      exit 0
     | "-save" :: fnm :: rest ->
       rest |> parsemore {o with SaveFile = fnm}
     | [] ->

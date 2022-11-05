@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -15,19 +16,18 @@ using Microsoft.Data.Sqlite;
 using Dapper;
 
 using Lcl.EventLog.Utilities;
-using System.Diagnostics.Eventing.Reader;
 
 namespace Lcl.EventLog.Jobs.Database
 {
   /// <summary>
   /// Interface for accessing a raw event database
   /// </summary>
-  public class RawEventDb
+  public class RawEventDbV1
   {
     /// <summary>
     /// Create a new RawEventDb
     /// </summary>
-    public RawEventDb(string fileName, bool allowWrite, bool allowCreate = false)
+    public RawEventDbV1(string fileName, bool allowWrite, bool allowCreate = false)
     {
       FileName = Path.GetFullPath(fileName);
       AllowWrite = allowWrite;
@@ -227,6 +227,31 @@ ORDER BY t.eid, t.task").ToList().AsReadOnly();
       }
 
       /// <summary>
+      /// Return an overview of the DB content (using one row per eventId/task combination).
+      /// The XML size is not calculated and returned as 0 instead
+      /// </summary>
+      public IReadOnlyList<DbOverview> GetOverviewWithoutSize()
+      {
+        return Connection.Query<DbOverview>(@"
+SELECT
+  t.eid as eventId,
+  t.task as taskId,
+  t.description AS taskLabel,
+  s.minversion AS minVersion,
+  s.enabled AS isEnabled,
+  COUNT(*) AS eventCount,
+  MIN(e.rid) AS minRid, 
+  MAX(e.rid) AS maxRid,
+  MIN(e.ts) AS eticksMin,
+  MAX(e.ts) AS eticksMax,
+  0 AS xmlSize
+FROM EventState s, Tasks t, Events e
+WHERE s.eid = t.eid AND e.eid = t.eid AND e.task = t.task
+GROUP BY t.eid, t.task
+ORDER BY t.eid, t.task").ToList().AsReadOnly();
+      }
+
+      /// <summary>
       /// Insert a batch of records into the database
       /// </summary>
       /// <param name="records">
@@ -240,6 +265,9 @@ ORDER BY t.eid, t.task").ToList().AsReadOnly();
       /// <param name="conflictHandling">
       /// Determines how handle insertion conflicts
       /// </param>
+      /// <returns>
+      /// Returns the number of records inserted.
+      /// </returns>
       public int PutEvents(
         IEnumerable<EventLogRecord> records,
         int cap = Int32.MaxValue,
@@ -355,6 +383,9 @@ INSERT INTO Tasks (eid, task, description)
       /// <param name="tMax">
       /// The maximum time stamp to match (in epoch-ticks)
       /// </param>
+      /// <param name="reverse">
+      /// When true, results are returned in reverse RID order
+      /// </param>
       /// <returns>
       /// The matching records
       /// </returns>
@@ -369,7 +400,8 @@ INSERT INTO Tasks (eid, task, description)
         long? ridMax = null,
         int? eid = null,
         long? tMin = null,
-        long? tMax = null)
+        long? tMax = null,
+        bool reverse = false)
       {
         var q = @"
 SELECT rid, eid, task, ts, ver, xml
@@ -402,7 +434,69 @@ WHERE " + String.Join(@"
   AND ", conditions);
           q = q + condition;
         }
+        if(reverse)
+        {
+          q = q + @"
+ORDER BY rid DESC";
+        }
         return Connection.Query<EventRow>(q, new {
+          RidMin = ridMin,
+          RidMax = ridMax,
+          Eid = eid,
+          TMin = tMin,
+          TMax = tMax
+        });
+      }
+
+      /// <summary>
+      /// Like <see cref="ReadEventsTicks(long?, long?, int?, long?, long?, bool)"/>,
+      /// but only return matching record IDs
+      /// </summary>
+      public IEnumerable<long> ReadEventIdsTicks(
+        long? ridMin = null,
+        long? ridMax = null,
+        int? eid = null,
+        long? tMin = null,
+        long? tMax = null,
+        bool reverse = false)
+      {
+        var q = @"
+SELECT rid
+FROM Events";
+        var conditions = new List<string>();
+        if(ridMin != null)
+        {
+          conditions.Add("rid >= @RidMin");
+        }
+        if(ridMax != null)
+        {
+          conditions.Add("rid <= @RidMax");
+        }
+        if(eid != null)
+        {
+          conditions.Add("eid = @Eid");
+        }
+        if(tMin != null)
+        {
+          conditions.Add("ts >= @TMin");
+        }
+        if(tMax != null)
+        {
+          conditions.Add("ts <= @TMax");
+        }
+        if(conditions.Count > 0)
+        {
+          var condition = @"
+WHERE " + String.Join(@"
+  AND ", conditions);
+          q = q + condition;
+        }
+        if(reverse)
+        {
+          q = q + @"
+ORDER BY rid DESC";
+        }
+        return Connection.Query<long>(q, new {
           RidMin = ridMin,
           RidMax = ridMax,
           Eid = eid,
@@ -432,6 +526,9 @@ WHERE " + String.Join(@"
       /// <param name="utcMax">
       /// The maximum time stamp to match. The Kind must be UTC or Local, not Unspecified.
       /// </param>
+      /// <param name="reverse">
+      /// When true, results are returned in reverse RID order
+      /// </param>
       /// <returns>
       /// The matching records
       /// </returns>
@@ -440,11 +537,30 @@ WHERE " + String.Join(@"
         long? ridMax = null,
         int? eid = null,
         DateTime? utcMin = null,
-        DateTime? utcMax = null)
+        DateTime? utcMax = null,
+        bool reverse = false)
       {
         long? tMin = utcMin.HasValue ? TimeUtil.TicksSinceEpoch(utcMin.Value) : null;
         long? tMax = utcMax.HasValue ? TimeUtil.TicksSinceEpoch(utcMax.Value) : null;
-        return ReadEventsTicks(ridMin, ridMax, eid, tMin, tMax);
+        return ReadEventsTicks(ridMin, ridMax, eid, tMin, tMax, reverse);
+      }
+
+      /// <summary>
+      /// Return a single record (or null if it does not exist)
+      /// </summary>
+      /// <param name="rid">
+      /// The record ID identifying the record
+      /// </param>
+      /// <returns>
+      /// the requested record or null if not found
+      /// </returns>
+      public EventRow? ReadEvent(long rid)
+      {
+        var q = @"
+SELECT rid, eid, task, ts, ver, xml
+FROM Events
+WHERE rid = @Rid";
+        return Connection.QuerySingleOrDefault<EventRow>(q, new { Rid = rid });
       }
 
       /// <summary>
@@ -492,6 +608,16 @@ VALUES (@Rid, @Eid, @Task, @Ts, @Ver, @Xml)", new {
       {
         return Connection.ExecuteScalar<long?>(@"
 SELECT MAX(rid)
+FROM Events");
+      }
+
+      /// <summary>
+      /// Return the minimum record ID in the Events table (returning null if the table is empty)
+      /// </summary>
+      public long? MinRecordId()
+      {
+        return Connection.ExecuteScalar<long?>(@"
+SELECT MIN(rid)
 FROM Events");
       }
 

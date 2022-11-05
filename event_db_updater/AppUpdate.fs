@@ -1,5 +1,6 @@
 ﻿module AppUpdate
 
+
 open System
 open System.Diagnostics.Eventing.Reader
 
@@ -19,16 +20,8 @@ type private Options = {
 
 let run args =
   let rec parsemore o args =
+    // Any -v and -tag options already have been processed and removed
     match args with
-    | "-v" :: rest ->
-      verbose <- true
-      rest |> parsemore o
-    | "-h" :: _ ->
-      Usage.usage "update"
-      exit 0
-    | "-q" :: rest ->
-      // vestigial option from an older version: ignore
-      rest |> parsemore o
     | "-db1" :: rest ->
       rest |> parsemore {o with UpdateV1 = true}
     | "-db2" :: rest ->
@@ -42,13 +35,13 @@ let run args =
       if o.JobNames |> List.isEmpty then
         failwith "Missing -job argument: expecting at least 1 job or channel name"
       if o.Cap <= 0 then
-        failwith "Missing -cap argument"
+        failwith "Invalid -cap argument"
       {o with JobNames = o.JobNames |> List.rev}
     | x :: _ ->
       failwith $"Unknown command '{x}'"
   let o = args |> parsemore {
     JobNames = []
-    Cap = 0
+    Cap = 20000
     UpdateV1 = false
     UpdateV2 = false
   }

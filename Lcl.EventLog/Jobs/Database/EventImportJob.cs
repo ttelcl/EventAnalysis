@@ -11,18 +11,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using Lcl.EventLog.Utilities;
-
 using Microsoft.Data.Sqlite;
+
+using Lcl.EventLog.Utilities;
 
 namespace Lcl.EventLog.Jobs.Database
 {
   /// <summary>
-  /// Imports a series of events into a DB
+  /// Imports a series of events into a V1 DB
   /// </summary>
   public class EventImportJob: IDisposable
   {
-    private readonly RawEventDb.OpenDb _db;
+    private readonly RawEventDbV1.OpenDb _db;
     private readonly SqliteTransaction _trx;
     private bool _disposed;
 
@@ -30,7 +30,7 @@ namespace Lcl.EventLog.Jobs.Database
     /// Create a new EventImportJob
     /// </summary>
     public EventImportJob(
-      RawEventDb.OpenDb db)
+      RawEventDbV1.OpenDb db)
     {
       _db = db;
       _trx = _db.Connection.BeginTransaction();
@@ -79,7 +79,15 @@ namespace Lcl.EventLog.Jobs.Database
       }
       var recordId = elr.RecordId.Value;
       var taskId = elr.Task ?? 0;
-      var taskDescription = elr.TaskDisplayName;
+      string? taskDescription = null;
+      try
+      {
+        taskDescription = elr.TaskDisplayName;
+      }
+      catch(Exception ex)
+      {
+        Trace.TraceInformation("Ignoring metadata lookup exception: " + ex.Message);
+      }
       int eventVersion = elr.Version ?? 0;
       var stamp = elr.TimeCreated.Value;
       // observe even ignored events!
@@ -87,7 +95,7 @@ namespace Lcl.EventLog.Jobs.Database
       if(Tracker.ShouldProcess(eventId, eventVersion))
       {
         var xml = elr.ToXml();
-        xml = XmlFixer.FixXml(xml);
+        // xml = XmlUtilities.FixXml(xml);
         var n = _db.PutEvent(recordId, eventId, taskId, stamp, eventVersion, xml, ConflictHandling);
         return n > 0;
       }
@@ -153,24 +161,6 @@ namespace Lcl.EventLog.Jobs.Database
       {
         return false;
       }
-    }
-
-    /// <summary>
-    /// Process an event specified as XML. Note that task descriptions are not available
-    /// in this form
-    /// </summary>
-    /// <param name="xml">
-    /// The XML formatted event record
-    /// </param>
-    /// <returns>
-    /// True if inserted, false if rejected by the event filter
-    /// </returns>
-    /// <exception cref="NotImplementedException"></exception>
-    public bool ProcessEvent(string xml)
-    {
-      ThrowIfDisposed();
-      throw new NotImplementedException(
-        "Not yet implemented");
     }
 
     /// <summary>

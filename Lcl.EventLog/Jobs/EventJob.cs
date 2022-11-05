@@ -31,7 +31,8 @@ namespace Lcl.EventLog.Jobs
       Zone = zone;
       Configuration = configuration;
       JobFolder = Path.Combine(Zone.RootFolder, Configuration.Name);
-      RawDbFile = Path.Combine(JobFolder, $"{Configuration.Name}.raw-events.sqlite3");
+      RawDbFileV1 = Path.Combine(JobFolder, $"{Configuration.Name}.raw-events.sqlite3");
+      RawDbFileV2 = Path.Combine(JobFolder, $"{Configuration.Name}.raw.sqlite3");
     }
 
     /// <summary>
@@ -50,14 +51,24 @@ namespace Lcl.EventLog.Jobs
     public string JobFolder { get; }
 
     /// <summary>
-    /// The filename for the raw event import DB
+    /// The filename for the raw event import DB, original version
     /// </summary>
-    public string RawDbFile { get; }
+    public string RawDbFileV1 { get; }
 
     /// <summary>
-    /// True if the database file exists
+    /// The filename for the raw event import DB, new version
     /// </summary>
-    public bool HasDb => File.Exists(RawDbFile);
+    public string RawDbFileV2 { get; }
+
+    /// <summary>
+    /// True if the V1 database file exists
+    /// </summary>
+    public bool HasDbV1 => File.Exists(RawDbFileV1);
+
+    /// <summary>
+    /// True if the V2 database file exists
+    /// </summary>
+    public bool HasDbV2 => File.Exists(RawDbFileV2);
 
     /// <summary>
     /// Insert missing records into the database from the event log, taking into
@@ -80,11 +91,40 @@ namespace Lcl.EventLog.Jobs
     /// <exception cref="InvalidOperationException">
     /// When the zone is readonly.
     /// </exception>
-    public int UpdateDb(int cap = Int32.MaxValue)
+    public int UpdateDb1(int cap = Int32.MaxValue)
     {
-      using(var db = OpenInnerDatabase(true))
+      using(var db = OpenInnerDatabase1(true))
       {
-        return UpdateDb(db, cap);
+        return UpdateDb1(db, cap);
+      }
+    }
+
+    /// <summary>
+    /// Insert missing records into the V2 database from the event log, taking into
+    /// account the filter settings. This overload opens the inner db, performs
+    /// the update, then closes it again.
+    /// </summary>
+    /// <param name="cap">
+    /// The maximum number of records to insert
+    /// </param>
+    /// <returns>
+    /// The number of records inserted.
+    /// </returns>
+    /// <exception cref="EventLogNotFoundException">
+    /// Thrown if the event log does not exist
+    /// </exception>
+    /// <exception cref="UnauthorizedAccessException">
+    /// Thrown if the calling user does not have enough privileges to access
+    /// the log. Usually that means: admin elevation required.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// When the zone is readonly.
+    /// </exception>
+    public int UpdateDb2(int cap = Int32.MaxValue)
+    {
+      using(var db = OpenInnerDatabase2(true))
+      {
+        return UpdateDb2(db, cap);
       }
     }
 
@@ -95,7 +135,7 @@ namespace Lcl.EventLog.Jobs
     /// </summary>
     /// <param name="db">
     /// The already-opened inner database (for instance opened with
-    /// <see cref="OpenInnerDatabase(bool)"/>)
+    /// <see cref="OpenInnerDatabase1(bool)"/>)
     /// </param>
     /// <param name="cap">
     /// The maximum number of records to insert
@@ -113,7 +153,37 @@ namespace Lcl.EventLog.Jobs
     /// <exception cref="InvalidOperationException">
     /// When the zone is readonly.
     /// </exception>
-    public int UpdateDb(RawEventDb.OpenDb db, int cap = Int32.MaxValue)
+    public int UpdateDb1(RawEventDbV1.OpenDb db, int cap = Int32.MaxValue)
+    {
+      return db.UpdateFrom(Configuration.Channel, cap);
+    }
+
+    /// <summary>
+    /// Insert missing records into the V2 database from the event log, taking into
+    /// account the filter settings. This overload takes an already opened
+    /// inner db as argument.
+    /// </summary>
+    /// <param name="db">
+    /// The already-opened inner database (for instance opened with
+    /// <see cref="OpenInnerDatabase1(bool)"/>)
+    /// </param>
+    /// <param name="cap">
+    /// The maximum number of records to insert
+    /// </param>
+    /// <returns>
+    /// The number of records inserted.
+    /// </returns>
+    /// <exception cref="EventLogNotFoundException">
+    /// Thrown if the event log does not exist
+    /// </exception>
+    /// <exception cref="UnauthorizedAccessException">
+    /// Thrown if the calling user does not have enough privileges to access
+    /// the log. Usually that means: admin elevation required.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// When the zone is readonly.
+    /// </exception>
+    public int UpdateDb2(OpenDbV2 db, int cap = Int32.MaxValue)
     {
       return db.UpdateFrom(Configuration.Channel, cap);
     }
@@ -123,15 +193,66 @@ namespace Lcl.EventLog.Jobs
     /// or 0 if no records were imported or the database has not been
     /// initialized yet.
     /// </summary>
-    public long MaxRecordId()
+    public long MaxRecordId1()
     {
-      if(!HasDb)
+      if(!HasDbV1)
       {
         return 0L;
       }
-      using(var db = OpenInnerDatabase(false))
+      using(var db = OpenInnerDatabase1(false))
       {
         return db.MaxRecordId() ?? 0L;
+      }
+    }
+
+    /// <summary>
+    /// Return the minimum imported record ID for this job's channel,
+    /// or 0 if no records were imported or the database has not been
+    /// initialized yet.
+    /// </summary>
+    public long MinRecordId1()
+    {
+      if(!HasDbV1)
+      {
+        return 0L;
+      }
+      using(var db = OpenInnerDatabase1(false))
+      {
+        return db.MinRecordId() ?? 0L;
+      }
+    }
+
+    /// <summary>
+    /// Return the maximum imported record ID for this job's channel,
+    /// or 0 if no records were imported or the database has not been
+    /// initialized yet.
+    /// </summary>
+    public long MaxRecordId2()
+    {
+      if(!HasDbV1)
+      {
+        return 0L;
+      }
+      using(var db = OpenInnerDatabase2(false))
+      {
+        return db.MaxRecordId() ?? 0L;
+      }
+    }
+
+    /// <summary>
+    /// Return the minimum imported record ID for this job's channel,
+    /// or 0 if no records were imported or the database has not been
+    /// initialized yet.
+    /// </summary>
+    public long MinRecordId2()
+    {
+      if(!HasDbV1)
+      {
+        return 0L;
+      }
+      using(var db = OpenInnerDatabase2(false))
+      {
+        return db.MinRecordId() ?? 0L;
       }
     }
 
@@ -140,31 +261,40 @@ namespace Lcl.EventLog.Jobs
     /// one per unique (event ID, task ID) combination (usually that
     /// means one row per event ID)
     /// </summary>
-    public IReadOnlyList<DbOverview> GetOverview()
+    public IReadOnlyList<DbOverview> GetOverview1(bool includeSize)
     {
-      if(!HasDb)
+      if(!HasDbV1)
       {
         return Array.Empty<DbOverview>();
       }
-      using(var db = OpenInnerDatabase(false))
+      using(var db = OpenInnerDatabase1(false))
       {
-        return db.GetOverview();
+        return includeSize ? db.GetOverview() : db.GetOverviewWithoutSize();
       }
     }
 
     /// <summary>
-    /// Open the inner database. Make sure to Dispose() it after use.
+    /// Open the inner V1 database. Make sure to Dispose() it after use.
     /// </summary>
-    public RawEventDb.OpenDb OpenInnerDatabase(bool writable)
+    public RawEventDbV1.OpenDb OpenInnerDatabase1(bool writable)
     {
-      var redb = OpenDatabase(writable);
+      var redb = OpenDatabase1(writable);
+      return redb.Open(writable);
+    }
+
+    /// <summary>
+    /// Open the inner V2 database. Make sure to Dispose() it after use.
+    /// </summary>
+    public OpenDbV2 OpenInnerDatabase2(bool writable)
+    {
+      var redb = OpenDatabase2(writable);
       return redb.Open(writable);
     }
 
     /// <summary>
     /// Open the job's database file, creating it if it did not yet exist.
     /// To operate on the database use the Open() method of the returned
-    /// RawEventDb object, or use <see cref="OpenInnerDatabase"/> to skip
+    /// RawEventDb object, or use <see cref="OpenInnerDatabase1"/> to skip
     /// the middle man.
     /// </summary>
     /// <param name="writable">
@@ -180,14 +310,14 @@ namespace Lcl.EventLog.Jobs
     /// <exception cref="FileNotFoundException">
     /// When the DB did not exist yet and <paramref name="writable"/> = false.
     /// </exception>
-    public RawEventDb OpenDatabase(bool writable)
+    public RawEventDbV1 OpenDatabase1(bool writable)
     {
       if(writable && Zone.ReadOnly)
       {
         throw new InvalidOperationException(
           $"Cannot open a writable DB in a read-only zone");
       }
-      if(!HasDb)
+      if(!HasDbV1)
       {
         if(writable)
         {
@@ -197,18 +327,61 @@ namespace Lcl.EventLog.Jobs
         {
           throw new FileNotFoundException(
             $"Cannot open a non-existing database as read-only",
-            RawDbFile);
+            RawDbFileV1);
         }
       }
-      return new RawEventDb(RawDbFile, writable, false);
+      return new RawEventDbV1(RawDbFileV1, writable, false);
+    }
+
+    /// <summary>
+    /// Open the job's V2 database file, creating it if it did not yet exist.
+    /// To operate on the database use the Open() method of the returned
+    /// RawEventDb object, or use <see cref="OpenInnerDatabase2"/> to skip
+    /// the middle man.
+    /// </summary>
+    /// <param name="writable">
+    /// Whether to open the DB read-only or writable.
+    /// False also prevents database creation
+    /// </param>
+    /// <returns>
+    /// The database interface object.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// When passing <paramref name="writable"/> = true when the zone is readonly.
+    /// </exception>
+    /// <exception cref="FileNotFoundException">
+    /// When the DB did not exist yet and <paramref name="writable"/> = false.
+    /// </exception>
+    public RawEventDbV2 OpenDatabase2(bool writable)
+    {
+      if(writable && Zone.ReadOnly)
+      {
+        throw new InvalidOperationException(
+          $"Cannot open a writable DB in a read-only zone");
+      }
+      if(!HasDbV2)
+      {
+        if(writable)
+        {
+          InitDb();
+        }
+        else
+        {
+          throw new FileNotFoundException(
+            $"Cannot open a non-existing database as read-only",
+            RawDbFileV2);
+        }
+      }
+      return new RawEventDbV2(RawDbFileV2, writable, false);
     }
 
     /// <summary>
     /// If the db does not exist yet, create it as an empty db.
+    /// Currently creates BOTH the new and legacy versions.
     /// </summary>
     public void InitDb()
     {
-      if(!HasDb)
+      if(!HasDbV1)
       {
         if(Zone.ReadOnly)
         {
@@ -218,10 +391,27 @@ namespace Lcl.EventLog.Jobs
         else
         {
           InitFolder();
-          var redb = new RawEventDb(RawDbFile, true, true);
-          using(var db = redb.Open(true, true))
+          var redb1 = new RawEventDbV1(RawDbFileV1, true, true);
+          using(var db1 = redb1.Open(true, true))
           {
-            db.DbInit();
+            db1.DbInit();
+          }
+        }
+      }
+      if(!HasDbV2)
+      {
+        if(Zone.ReadOnly)
+        {
+          throw new InvalidOperationException(
+            "Cannot initialize DB: the data zone is read-only");
+        }
+        else
+        {
+          InitFolder();
+          var redb2 = new RawEventDbV2(RawDbFileV2, true, true);
+          using(var db2 = redb2.Open(true, true))
+          {
+            db2.DbInit();
           }
         }
       }

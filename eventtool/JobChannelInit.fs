@@ -34,6 +34,9 @@ let run args =
     | "-v" :: rest ->
       verbose <- true
       rest |> parsemore o
+    | "-h" :: _ ->
+      Usage.usage "init"
+      exit 0
     | "-job" :: jnm :: rest ->
       if o.AutoJobName then
         failwith "-job and -J are mutually exclusive"
@@ -57,7 +60,7 @@ let run args =
         if o.JobName |> String.IsNullOrEmpty then
           let jobname =
             if o.ChannelName |> EventJobConfig.IsValidJobName then
-              o.ChannelName
+              o.ChannelName.ToLowerInvariant()
             else
               o.ChannelName |> deriveJobName
           if o.AutoJobName then
@@ -132,7 +135,7 @@ let run args =
     cp $"Saving \fy{fnm}\f0"
     zone.WriteConfig(cfg)
     let job = zone.OpenJob(o.JobName)
-    cp $"Creating channel DB \fb{job.RawDbFile}\f0"
+    cp $"Creating channel DB \fb{job.RawDbFileV1}\f0"
     job.InitDb()
     0
 

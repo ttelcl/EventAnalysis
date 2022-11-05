@@ -16,6 +16,7 @@ using Xunit.Abstractions;
 
 using Lcl.EventLog.Jobs.Database;
 using Lcl.EventLog.Utilities;
+using System.Globalization;
 
 namespace UnitTest.Lcl.EventLog
 {
@@ -39,12 +40,148 @@ namespace UnitTest.Lcl.EventLog
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
-      var redb = new RawEventDb(dbName, true, true);
+      var redb = new RawEventDbV1(dbName, true, true);
       using(var db = redb.Open(true, true))
       {
         db.DbInit();
       }
       Assert.True(File.Exists(dbName));
+    }
+
+    [Fact]
+    public void CanCreateDbV2()
+    {
+      var dbName = Path.GetFullPath("cancreatedb-v2.sqlite3");
+      _output.WriteLine($"DB file is {dbName}");
+      if(File.Exists(dbName))
+      {
+        _output.WriteLine("Deleting existing DB before test");
+        File.Delete(dbName);
+      }
+      Assert.False(File.Exists(dbName));
+      var redb = new RawEventDbV2(dbName, true, true);
+      using(var db = redb.Open(true, true))
+      {
+        db.DbInit();
+      }
+      Assert.True(File.Exists(dbName));
+    }
+
+    [Fact]
+    public void ProviderInfoTest()
+    {
+      var dbName = Path.GetFullPath("providerinfo.sqlite3");
+      _output.WriteLine($"DB file is {dbName}");
+      if(File.Exists(dbName))
+      {
+        _output.WriteLine("Deleting existing DB before test");
+        File.Delete(dbName);
+      }
+      Assert.False(File.Exists(dbName));
+      var redb = new RawEventDbV2(dbName, true, true);
+      using(var db = redb.Open(true, true))
+      {
+        db.DbInit();
+      }
+      Assert.True(File.Exists(dbName));
+      using(var db = redb.Open(true))
+      {
+        var providers = db.AllProviderInfoRows().ToList();
+        Assert.Empty(providers);
+        db.InsertProviderInfoRow(1, "MsiInstaller", null);
+        db.InsertProviderInfoRow(2, "MSSQL$SQLEXPRESS", null);
+        db.InsertProviderInfoRow(3, "Microsoft-Windows-RestartManager", "{0888e5ef-9b98-4695-979d-e92ce4247224}");
+        providers = db.AllProviderInfoRows().ToList();
+        Assert.Equal(3, providers.Count);
+        Assert.Equal(1, providers[0].ProviderId);
+        Assert.Equal(2, providers[1].ProviderId);
+        Assert.Equal(3, providers[2].ProviderId);
+        Assert.Equal("MsiInstaller", providers[0].ProviderName);
+        Assert.Null(providers[0].ProviderGuid);
+        Assert.Equal("Microsoft-Windows-RestartManager", providers[2].ProviderName);
+        Assert.Equal("{0888e5ef-9b98-4695-979d-e92ce4247224}", providers[2].ProviderGuid);
+        var prv = db.FindProvider("MSSQL$SQLEXPRESS");
+        Assert.NotNull(prv);
+        Assert.Equal(2, prv.ProviderId);
+        Assert.Equal("MSSQL$SQLEXPRESS", prv.ProviderName);
+        Assert.Null(prv.ProviderGuid);
+        prv = db.FindProvider(2);
+        Assert.NotNull(prv);
+        Assert.Equal(2, prv.ProviderId);
+        Assert.Equal("MSSQL$SQLEXPRESS", prv.ProviderName);
+        Assert.Null(prv.ProviderGuid);
+      }
+    }
+
+    private long Stamp(string txt)
+    {
+      return DateTime.Parse(txt, null, DateTimeStyles.RoundtripKind).TicksSinceEpoch();
+    }
+
+    [Fact]
+    public void DbV2QueryTest()
+    {
+      var dbName = Path.GetFullPath("v2query.sqlite3");
+      _output.WriteLine($"DB file is {dbName}");
+      if(File.Exists(dbName))
+      {
+        _output.WriteLine("Deleting existing DB before test");
+        File.Delete(dbName);
+      }
+      Assert.False(File.Exists(dbName));
+      var redb = new RawEventDbV2(dbName, true, true);
+      using(var db = redb.Open(true, true))
+      {
+        db.DbInit();
+      }
+      Assert.True(File.Exists(dbName));
+      using(var db = redb.Open(true))
+      {
+        db.InsertProviderInfoRow(4, "Microsoft-Windows-Diagnostics-Performance", "{cfc18ec0-96b1-4eba-961b-622caee05b0a}");
+        db.InsertTaskInfoRow(100, 2, 4002, 4, "Boot Performance Monitoring");
+        db.InsertTaskInfoRow(200, 1, 4007, 4, "Shutdown Performance Monitoring");
+        db.InsertOperationInfoRow(100, 2, 4002, 4, 34, null);
+        db.InsertOperationInfoRow(200, 1, 4007, 4, 40, null);
+        db.InsertEvent(1L, Stamp("2020-07-26T06:05:14.3403271Z"), 100, 2, 4002, 4, 34, "<Boot1/>");
+        db.InsertEvent(2L, Stamp("2020-07-26T06:55:52.0627080Z"), 200, 1, 4007, 4, 40, "<Shutdown1/>");
+        db.InsertEvent(241L, Stamp("2022-10-12T06:09:54.0965196Z"), 200, 1, 4007, 4, 40, "<Shutdown2/>");
+        db.InsertEvent(242L, Stamp("2022-10-12T06:09:56.0721886Z"), 100, 2, 4002, 4, 34, "<Boot3/>");
+      }
+      using(var db = redb.Open(false))
+      {
+        var e1 = db.FindEvent(1L);
+        Assert.NotNull(e1);
+        Assert.Equal(100, e1.EventId);
+        Assert.Equal("<Boot1/>", e1.Xml);
+        var h1 = db.FindEventHeader(e1);
+        Assert.NotNull(h1);
+        Assert.Equal(100, h1.EventId);
+        var tir = db.FindTask(e1);
+        Assert.NotNull(tir);
+        Assert.Equal("Boot Performance Monitoring", tir.TaskDescription);
+
+        var boots = db.QueryEventHeaders(eid: 100, reverse: false).ToList();
+        Assert.NotNull(boots);
+        Assert.NotEmpty(boots);
+        Assert.Equal(2, boots.Count);
+        Assert.Equal(1L, boots[0].RecordId);
+        Assert.Equal(242L, boots[1].RecordId);
+        boots = db.QueryEventHeaders(eid: 100, reverse: true).ToList();
+        Assert.NotNull(boots);
+        Assert.NotEmpty(boots);
+        Assert.Equal(2, boots.Count);
+        Assert.Equal(242L, boots[0].RecordId);
+        Assert.Equal(1L, boots[1].RecordId);
+
+        var t0 = DateTime.Parse("2020-01-01T00:00:00Z", null, DateTimeStyles.RoundtripKind).TicksSinceEpoch();
+        var t1 = DateTime.Parse("2021-01-01T00:00:00Z", null, DateTimeStyles.RoundtripKind).TicksSinceEpoch() - 1L;
+        var e2020 = db.QueryEventHeaders(tMin: t0, tMax: t1).ToList();
+        Assert.NotNull(e2020);
+        Assert.NotEmpty(e2020);
+        Assert.Equal(2, e2020.Count);
+        Assert.Equal(1L, e2020[0].RecordId);
+        Assert.Equal(2L, e2020[1].RecordId);
+      }
     }
 
     [Fact]
@@ -58,7 +195,7 @@ namespace UnitTest.Lcl.EventLog
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
-      var redb = new RawEventDb(dbName, true, true);
+      var redb = new RawEventDbV1(dbName, true, true);
       using(var db = redb.Open(true, true))
       {
         db.DbInit();
@@ -120,7 +257,7 @@ namespace UnitTest.Lcl.EventLog
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
-      var redb = new RawEventDb(dbName, true, true);
+      var redb = new RawEventDbV1(dbName, true, true);
       using(var db = redb.Open(true, true))
       {
         db.DbInit();
@@ -167,7 +304,7 @@ namespace UnitTest.Lcl.EventLog
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
-      var redb = new RawEventDb(dbName, true, true);
+      var redb = new RawEventDbV1(dbName, true, true);
       using(var db = redb.Open(true, true))
       {
         db.DbInit();
@@ -270,7 +407,7 @@ namespace UnitTest.Lcl.EventLog
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
-      var redb = new RawEventDb(dbName, true, true);
+      var redb = new RawEventDbV1(dbName, true, true);
       using(var db = redb.Open(true, true))
       {
         db.DbInit();
@@ -400,7 +537,7 @@ namespace UnitTest.Lcl.EventLog
         File.Delete(dbName);
       }
       Assert.False(File.Exists(dbName));
-      var redb = new RawEventDb(dbName, true, true);
+      var redb = new RawEventDbV1(dbName, true, true);
       using(var db = redb.Open(true, true))
       {
         db.DbInit();
