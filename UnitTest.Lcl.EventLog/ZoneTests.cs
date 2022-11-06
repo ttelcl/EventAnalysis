@@ -47,7 +47,7 @@ namespace UnitTest.Lcl.EventLog
     public void CanCreateZoneAndDatabase()
     {
       var baseFolder = Environment.CurrentDirectory;
-      var machine = "TestZone01";
+      var machine = "TestZone00";
       var zoneFolder = Path.Combine(baseFolder, machine);
       if(Directory.Exists(zoneFolder))
       {
@@ -90,7 +90,7 @@ namespace UnitTest.Lcl.EventLog
     public void CanFillDatabase()
     {
       var baseFolder = Environment.CurrentDirectory;
-      var machine = "TestZone02";
+      var machine = "TestZone01";
       var jobName = "filling";
       var zoneFolder = Path.Combine(baseFolder, machine);
       if(Directory.Exists(zoneFolder))
