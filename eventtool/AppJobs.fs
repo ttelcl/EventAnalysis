@@ -41,7 +41,7 @@ let run args =
     All = false
   }
   let listZoneJobs (edz: EventDataZone) =
-    cp $"Machine data zone \fb{edz.Machine}\f0:"
+    cp $"Machine data zone \fb{edz.Machine}\f0 (\fG{edz.RootFolder}\f0):"
     let jobs = edz.EnumJobs() |> Seq.toList
     if jobs |> List.isEmpty then
       cp "\fo  No jobs yet\f0."
@@ -63,6 +63,7 @@ let run args =
         cp $"  \fc%-20s{job.Name} {adminTag} {v1tag} {v2tag} \fy{job.Channel}"
   if o.All then
     let anchor = new EventDataZone(true)
+    cp $"Data folder is \fo{anchor.BaseFolder}\f0"
     let configurations = anchor.SiblingZones() |> Seq.toList
     if configurations |> List.isEmpty then
       cp "\foThere are no non-empty machine data zones yet\f0!"
@@ -78,6 +79,7 @@ let run args =
         o.Machine
     let ezc = new EventZoneConfig(machine)
     let edz = new EventDataZone(true, ezc.Machine)
+    cp $"Data folder is \fo{edz.BaseFolder}\f0"
     edz |> listZoneJobs
   0
 
