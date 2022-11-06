@@ -55,7 +55,7 @@ namespace Lcl.EventLog.Jobs
         String.IsNullOrEmpty(baseFolder)
         ? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "Yoco",
+            "TteLcl",
             "EventAnalysis")
         : Path.Combine(
             Path.GetFullPath(baseFolder));
