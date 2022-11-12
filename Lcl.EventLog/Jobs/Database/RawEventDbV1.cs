@@ -207,6 +207,22 @@ ORDER BY eid, task").ToList().AsReadOnly();
       /// </summary>
       public IReadOnlyList<DbOverview> GetOverview()
       {
+        // First make sure there actually is anything in the tables.
+        // Otherwise the main query below will fail hard.
+        var witness = Connection.Query(@"
+SELECT 
+  t.eid as eventId,
+  t.task as taskId,
+  t.description AS taskLabel,
+  s.minversion AS minVersion,
+  s.enabled AS isEnabled
+FROM EventState s
+LEFT JOIN Tasks t ON s.eid = t.eid
+").ToList();
+        if(witness.Count == 0)
+        {
+          return Array.Empty<DbOverview>();
+        }
         return Connection.Query<DbOverview>(@"
 SELECT
   t.eid as eventId,
