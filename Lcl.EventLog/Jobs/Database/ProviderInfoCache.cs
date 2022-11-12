@@ -45,6 +45,14 @@ namespace Lcl.EventLog.Jobs.Database
     }
 
     /// <summary>
+    /// Create a new ProviderInfoCache, loading its initial content from the given open database
+    /// </summary>
+    public static ProviderInfoCache FromDb(OpenDbV2 odb)
+    {
+      return new ProviderInfoCache(odb.AllProviderInfoRows());
+    }
+
+    /// <summary>
     /// Add a row to this cache. Fails if the id or name are already in use
     /// </summary>
     internal void Add(ProviderInfoRow row)
@@ -122,6 +130,14 @@ namespace Lcl.EventLog.Jobs.Database
     }
 
     /// <summary>
+    /// Find a row via the ID in the given IProviderInfoKey implementing object
+    /// </summary>
+    public ProviderInfoRow? Find(IProviderInfoKey ipik)
+    {
+      return Find(ipik.ProviderId);
+    }
+
+    /// <summary>
     /// Get a row by name, throwing a <see cref="KeyNotFoundException"/> if not found
     /// </summary>
     public ProviderInfoRow Get(string name)
@@ -151,6 +167,15 @@ namespace Lcl.EventLog.Jobs.Database
         throw new KeyNotFoundException(
           $"Unknown provider id {id}");
       }
+    }
+
+    /// <summary>
+    /// Get a row via the ID in the given IProviderInfoKey implementing object,
+    /// throwing a <see cref="KeyNotFoundException"/> if not found
+    /// </summary>
+    public ProviderInfoRow Get(IProviderInfoKey ipik)
+    {
+      return Get(ipik.ProviderId);
     }
 
     /// <summary>

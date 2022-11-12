@@ -34,10 +34,7 @@ namespace Lcl.EventLog.Jobs.Database
     {
       _db = db;
       _trx = _db.Connection.BeginTransaction();
-      Tracker = new EventInsertionLogic(
-        _db.AllProviderInfoRows().ToList(),
-        _db.AllTaskInfoRows().ToList(),
-        _db.AllOperationInfoRows().ToList());
+      Tracker = new EventInsertionLogic(db);
     }
 
     /// <summary>

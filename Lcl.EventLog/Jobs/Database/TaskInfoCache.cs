@@ -31,6 +31,14 @@ namespace Lcl.EventLog.Jobs.Database
     }
 
     /// <summary>
+    /// Create a new TaskInfoCache, loading its initial content from the given open database
+    /// </summary>
+    public static TaskInfoCache FromDb(OpenDbV2 odb)
+    {
+      return new TaskInfoCache(odb.AllTaskInfoRows());
+    }
+
+    /// <summary>
     /// Observe a new eventId-eventVersion-taskId-providerId quadruplet, inserting it 
     /// in this caches's front store if it is new or updated.
     /// </summary>
@@ -83,9 +91,9 @@ namespace Lcl.EventLog.Jobs.Database
     /// Find the existing row matching the given event record header, returning null
     /// if not found
     /// </summary>
-    public TaskInfoRow? Find(EventHeaderRow ehr)
+    public TaskInfoRow? Find(ITaskInfoKey itik)
     {
-      return Find(ehr.EventId, ehr.EventVersion, ehr.TaskId, ehr.ProviderId);
+      return Find(itik.EventId, itik.EventVersion, itik.TaskId, itik.ProviderId);
     }
 
     /// <summary>

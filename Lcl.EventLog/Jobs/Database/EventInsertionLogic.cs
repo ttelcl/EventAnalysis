@@ -36,6 +36,17 @@ namespace Lcl.EventLog.Jobs.Database
     }
 
     /// <summary>
+    /// Create a new EventInsertionLogic, loading the initial state from the given open DB
+    /// </summary>
+    public EventInsertionLogic(
+      OpenDbV2 odb)
+    {
+      ProviderInfoTracker = ProviderInfoCache.FromDb(odb);
+      TaskInfoTracker = TaskInfoCache.FromDb(odb);
+      OperationInfoTracker = OperationInfoCache.FromDb(odb);
+    }
+
+    /// <summary>
     /// Tracks newly added ProviderInfo rows (and assigns new providr IDs)
     /// </summary>
     public ProviderInfoCache ProviderInfoTracker { get; }
