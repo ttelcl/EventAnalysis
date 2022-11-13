@@ -62,7 +62,11 @@ let run args =
   cp $"Inspecting database \fy{job.RawDbFileV2}\f0."
   let overviews = job.GetOverview2(o.EventCounts)
   if overviews.Count > 0 then
-    cp $"Saving \fb{overviews.Count}\f0 records"
+    if o.EventCounts then
+      let totalEvents = overviews |> Seq.sumBy (fun ovr -> ovr.EventCount)
+      cp $"Saving \fb{overviews.Count}\f0 records (\fg{totalEvents}\f0 events)"
+    else
+      cp $"Saving \fb{overviews.Count}\f0 records."
     do
       let buff = new XsvBuffer(true)
       let colIndex = buff.Declare<int>("id")

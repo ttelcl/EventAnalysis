@@ -399,7 +399,14 @@ ORDER BY rid " + (reverse ? "DESC" : "ASC");
     {
       if(includeEvents)
       {
-        throw new NotImplementedException("'includeEvents' is not yet supported");
+        return Connection.Query<DbOverviewRow>(@"
+SELECT o.prvid, o.eid, o.ever, o.task, o.opid, p.prvname, t.taskdesc, o.opdesc, COUNT(h.rid) as eventcount
+FROM OperationInfo o
+LEFT JOIN TaskInfo t USING(eid, ever, task, prvid)
+LEFT JOIN ProviderInfo p USING(prvid)
+LEFT JOIN EventHeader h USING(eid)
+GROUP BY o.prvid, o.eid, o.ever, o.task, o.opid, p.prvname, t.taskdesc, o.opdesc
+ORDER BY p.prvname, p.prvid, o.eid, o.ever, o.task, o.opid");
       }
       else
       {
