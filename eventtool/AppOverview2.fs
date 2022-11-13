@@ -110,25 +110,31 @@ let run args =
     do
       let prvEventCount =
         overviews
-        |> Seq.groupBy (fun ovr -> ovr.ProviderName, ovr.EventId)
-        |> Seq.map (fun ((pn,eid),items) -> (pn, eid, items |> Seq.toArray |> Array.length))
+        |> Seq.groupBy (fun ovr -> ovr.ProviderName, ovr.ProviderId, ovr.EventId)
+        |> Seq.map (fun ((pn,pi,eid),items) -> (pn, pi, eid, items |> Seq.toArray |> Array.length, items |> Seq.sumBy (fun dor -> dor.EventCount)))
         |> Seq.toArray
       let buff = new XsvBuffer(true)
       let colPrvName = buff.Declare<string>("provider")
+      let colPrvId = buff.Declare<int>("prvid")
       let colEventId = buff.Declare<int>("event")
       let colCount = buff.Declare<int>("taskops")
+      let colOptEvCount = if o.EventCounts then Some(buff.Declare<int>("evcount")) else None
       buff.Lock()
       let onm = $"{job.Configuration.Name}.provider-event-counts.csv"
       do
         use w = onm |> startFile
         let itrw = Xsv.WriteXsv(w, onm, buff.Count)
         buff.WriteHeader(itrw)
-        for (pn, eid, n) in prvEventCount do
+        for (pn, pi, eid, n, nev) in prvEventCount do
           if n > 1 then
             cp $"  \foWarning\f0: (\fy{pn}\f0,\fg{eid}\f0) does not uniquely identify a (task,opcode)! (\fb{n}\f0)"
           pn |> missingString "?" |> colPrvName.Set
+          pi |> colPrvId.Set
           eid |> colEventId.Set
           n |> colCount.Set
+          match colOptEvCount with
+          | Some(colEvCount) -> nev |> colEvCount.Set
+          | None -> ()
           buff.WriteRow(itrw)
       onm |> finishFile
     0

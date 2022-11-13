@@ -56,11 +56,15 @@ let usage targetCommand =
     cp "\foeventtool \fyplc-dump\f0 [\fg-from \fc<rid>\f0] [\fg-to \fc<rid>\f0] [\fg-job \fc<job>\f0 {\fg-e \fc<eid>\f0}] [\fg-m \fc<machine>\f0]"
     cp "   Backward compat event dump file export (if -job and -e are omitted)"
   if targetMatch "samples" then
-    cp "\foeventtool \fysamples\f0 \fg-job \fc<jobname>\f0 \fg-e \fc<event-id>\f0 [\fg-n \fc<n>\f0] [\fg-m \fc<machine>\f0]"
-    cp "   Extract sample events from a store"
+    cp "\foeventtool \fysamples\f0 \fg-job \fc<jobname>\f0 [\fg-p \fc<provider>\f0] \fg-e \fc<event-id>\f0 [\fg-n \fc<n>\f0] [\fg-m \fc<machine>\f0]"
+    cp "   Extract sample events from a store (using V2 database)"
     if detailed then
       cp "   \fg-job \fc<jobname>\f0       The name of a job or channel to extract events from"
-      cp "   \fg-n \fc<n>\f0               The number of events to extract. Default 2. The events are smoothly spread."
+      cp "   \fg-n \fc<n>\f0               The number of events to extract. Default 2. The events are smoothly spread"
+      cp "   \fx\fx\fx                     (so: the default of 2 samples will extract the first and last matching event)"
+      cp "   \fg-e \fc<event-id>\f0        The event ID. In case multiple providers provide the same event, a \fg-p\f0 option is required."
+      cp "   \fg-p \fc<provider>\f0        Disambiguate the event source. \fc<provider>\f0 can be a provider ID or a unique part of"
+      cp "   \fx\fx\fx                     the provider name. Use \foeventtool \fyoverview\f0 to discover provider names for an event."
   if targetMatch "export" then
     cp "\foeventtool \fyexport\f0 [\fg-m \fc<machine>\f0] \fg-job \fc<jobname> \fg-file \fc<dumpfile>"
     cp "   \frNot yet implemented!\f0 Export events from an event job database to an event data file."
