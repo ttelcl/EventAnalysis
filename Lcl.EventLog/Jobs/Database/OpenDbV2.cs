@@ -188,7 +188,7 @@ WHERE eid=@Eid AND ever=@Ever AND task=@TaskId AND prvid=@PrvId AND opid=@OpId",
     /// <param name="tMax">Maximum event timestamp as epoch ticks</param>
     /// <param name="prvid">The exact internal provider ID</param>
     /// <param name="reverse">Return results in reverse RID order when true.</param>
-    /// <returns></returns>
+    /// <returns>A sequence of EventHeaderRow objects</returns>
     public IEnumerable<EventHeaderRow> QueryEventHeaders(
       long? ridMin = null,
       long? ridMax = null,
@@ -244,52 +244,6 @@ ORDER BY rid " + (reverse ? "DESC" : "ASC");
         TMax = tMax,
         PrvId = prvid,
       });
-    }
-
-    /// <summary>
-    /// Lookup an EventHeader record (use <see cref="FindEvent(long)"/> if you
-    /// also want the XML)
-    /// </summary>
-    public EventHeaderRow? FindEventHeader(long rid)
-    {
-      return Connection.QuerySingleOrDefault<EventHeaderRow>(@"
-SELECT rid, stamp, eid, ever, task, prvid, opid
-FROM EventHeader
-WHERE rid=@RecordId",
-      new {
-        RecordId = rid,
-      });
-    }
-
-    /// <summary>
-    /// Lookup an EventHeader record (use <see cref="FindEvent(IEventKey)"/> if you
-    /// also want the XML)
-    /// </summary>
-    public EventHeaderRow? FindEventHeader(IEventKey iek)
-    {
-      return FindEventHeader(iek.RecordId);
-    }
-
-    /// <summary>
-    /// Lookup an EventXml record
-    /// </summary>
-    public EventXmlRow? FindEventXml(long rid)
-    {
-      return Connection.QuerySingleOrDefault<EventXmlRow>(@"
-SELECT rid, xml
-FROM EventXml
-WHERE rid=@RecordId",
-      new {
-        RecordId = rid,
-      });
-    }
-
-    /// <summary>
-    /// Lookup an EventXml record
-    /// </summary>
-    public EventXmlRow? FindEventXml(IEventKey iek)
-    {
-      return FindEventXml(iek.RecordId);
     }
 
     /// <summary>
@@ -359,6 +313,156 @@ ORDER BY h.rid " + (reverse ? "DESC" : "ASC");
         TMax = tMax,
         PrvId = prvid,
       });
+    }
+
+    /// <summary>
+    /// Query the EventHeaders table, returning only the record IDs
+    /// </summary>
+    /// <param name="ridMin">Minimum Record ID</param>
+    /// <param name="ridMax">Maximum Record ID</param>
+    /// <param name="eid">The exact Event ID to match</param>
+    /// <param name="tMin">Minimum event timestamp as epoch ticks</param>
+    /// <param name="tMax">Maximum event timestamp as epoch ticks</param>
+    /// <param name="prvid">The exact internal provider ID</param>
+    /// <param name="reverse">Return results in reverse RID order when true.</param>
+    /// <returns>A sequence of record IDs</returns>
+    public IEnumerable<long> QueryEventIds(
+      long? ridMin = null,
+      long? ridMax = null,
+      int? eid = null,
+      long? tMin = null,
+      long? tMax = null,
+      int? prvid = null,
+      bool reverse = false)
+    {
+      var q = @"
+SELECT rid
+FROM EventHeader";
+      var conditions = new List<string>();
+      if(ridMin != null)
+      {
+        conditions.Add("rid >= @RidMin");
+      }
+      if(ridMax != null)
+      {
+        conditions.Add("rid <= @RidMax");
+      }
+      if(eid != null)
+      {
+        conditions.Add("eid = @Eid");
+      }
+      if(tMin != null)
+      {
+        conditions.Add("stamp >= @TMin");
+      }
+      if(tMax != null)
+      {
+        conditions.Add("stamp <= @TMax");
+      }
+      if(prvid != null)
+      {
+        conditions.Add("prvid = @PrvId");
+      }
+      if(conditions.Count > 0)
+      {
+        var condition = @"
+WHERE " + String.Join(@"
+  AND ", conditions);
+        q += condition;
+      }
+      q += @"
+ORDER BY rid " + (reverse ? "DESC" : "ASC");
+
+      return Connection.Query<long>(q, new {
+        RidMin = ridMin,
+        RidMax = ridMax,
+        Eid = eid,
+        TMin = tMin,
+        TMax = tMax,
+        PrvId = prvid,
+      });
+    }
+
+    /// <summary>
+    /// Get an overview of the distinct provider-event-task-operation combinations
+    /// appearing in the database. Optionally include event counts.
+    /// </summary>
+    /// <param name="includeEvents">
+    /// When true, also event counts are included (at a heavy performance cost).
+    /// When false, event counts are reported as 0.
+    /// </param>
+    /// <returns>
+    /// A sequence of DbOverviewRow objects, sorted by
+    /// (ProviderName, ProviderId, EventId, EventVersion, Taskid, OpcodeId).
+    /// </returns>
+    public IEnumerable<DbOverviewRow> GetOverview(bool includeEvents)
+    {
+      if(includeEvents)
+      {
+        return Connection.Query<DbOverviewRow>(@"
+SELECT o.prvid, o.eid, o.ever, o.task, o.opid, p.prvname, t.taskdesc, o.opdesc, COUNT(h.rid) as eventcount
+FROM OperationInfo o
+LEFT JOIN TaskInfo t USING(eid, ever, task, prvid)
+LEFT JOIN ProviderInfo p USING(prvid)
+LEFT JOIN EventHeader h USING(eid)
+GROUP BY o.prvid, o.eid, o.ever, o.task, o.opid, p.prvname, t.taskdesc, o.opdesc
+ORDER BY p.prvname, p.prvid, o.eid, o.ever, o.task, o.opid");
+      }
+      else
+      {
+        return Connection.Query<DbOverviewRow>(@"
+SELECT o.prvid, o.eid, o.ever, o.task, o.opid, p.prvname, t.taskdesc, o.opdesc
+FROM OperationInfo o
+LEFT JOIN TaskInfo t USING(eid, ever, task, prvid)
+LEFT JOIN ProviderInfo p USING(prvid)
+ORDER BY p.prvname, p.prvid, o.eid, o.ever, o.task, o.opid");
+      }
+    }
+
+    /// <summary>
+    /// Lookup an EventHeader record (use <see cref="FindEvent(long)"/> if you
+    /// also want the XML)
+    /// </summary>
+    public EventHeaderRow? FindEventHeader(long rid)
+    {
+      return Connection.QuerySingleOrDefault<EventHeaderRow>(@"
+SELECT rid, stamp, eid, ever, task, prvid, opid
+FROM EventHeader
+WHERE rid=@RecordId",
+      new {
+        RecordId = rid,
+      });
+    }
+
+    /// <summary>
+    /// Lookup an EventHeader record (use <see cref="FindEvent(IEventKey)"/> if you
+    /// also want the XML)
+    /// </summary>
+    public EventHeaderRow? FindEventHeader(IEventKey iek)
+    {
+      return FindEventHeader(iek.RecordId);
+    }
+
+    /// <summary>
+    /// Lookup an EventXml record
+    /// </summary>
+    public EventXmlRow? FindEventXml(long rid)
+    {
+      return Connection.QuerySingleOrDefault<EventXmlRow>(@"
+SELECT rid, xml
+FROM EventXml
+WHERE rid=@RecordId",
+      new {
+        RecordId = rid,
+      });
+    }
+
+    /// <summary>
+    /// Lookup an EventXml record
+    /// </summary>
+    public EventXmlRow? FindEventXml(IEventKey iek)
+    {
+      return FindEventXml(iek.RecordId);
     }
 
     /// <summary>

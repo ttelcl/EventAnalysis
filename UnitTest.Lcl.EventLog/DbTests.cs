@@ -181,6 +181,11 @@ namespace UnitTest.Lcl.EventLog
         Assert.Equal(2, e2020.Count);
         Assert.Equal(1L, e2020[0].RecordId);
         Assert.Equal(2L, e2020[1].RecordId);
+
+        var ids = db.QueryEventIds(100, 1000).ToList();
+        Assert.NotEmpty(ids);
+        Assert.Equal(2, ids.Count);
+        Assert.Equal(new [] { 241L, 242L }, ids);
       }
     }
 

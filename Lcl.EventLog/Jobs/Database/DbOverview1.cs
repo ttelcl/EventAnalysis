@@ -17,12 +17,12 @@ namespace Lcl.EventLog.Jobs.Database
   /// <summary>
   /// Overview information on one eventId / taskId combination in the db
   /// </summary>
-  public class DbOverview
+  public class DbOverview1
   {
     /// <summary>
     /// Create the DbOverview instance
     /// </summary>
-    public DbOverview(
+    public DbOverview1(
       long eventId,
       long taskId,
       string? taskLabel,

@@ -32,6 +32,14 @@ namespace Lcl.EventLog.Jobs.Database
     }
 
     /// <summary>
+    /// Create a new OperationInfoCache, loading its initial content from the given open database
+    /// </summary>
+    public static OperationInfoCache FromDb(OpenDbV2 odb)
+    {
+      return new OperationInfoCache(odb.AllOperationInfoRows());
+    }
+
+    /// <summary>
     /// Observe a new eventId-eventVersion-taskId-providerId-operationId quintuplet, inserting it 
     /// in this caches's front store if it is new or updated.
     /// </summary>
@@ -84,9 +92,9 @@ namespace Lcl.EventLog.Jobs.Database
     /// Find the existing row matching the given event record header, returning null
     /// if not found
     /// </summary>
-    public OperationInfoRow? Find(EventHeaderRow ehr)
+    public OperationInfoRow? Find(IOperationInfoKey ioik)
     {
-      return Find(ehr.EventId, ehr.EventVersion, ehr.TaskId, ehr.ProviderId, ehr.OperationId);
+      return Find(ioik.EventId, ioik.EventVersion, ioik.TaskId, ioik.ProviderId, ioik.OperationId);
     }
 
     /// <summary>

@@ -257,19 +257,37 @@ namespace Lcl.EventLog.Jobs
     }
 
     /// <summary>
-    /// Get an overview of the data: a list of DbOverview records, 
+    /// Get an overview of the legacy data: a list of DbOverview1 records, 
     /// one per unique (event ID, task ID) combination (usually that
     /// means one row per event ID)
     /// </summary>
-    public IReadOnlyList<DbOverview> GetOverview1(bool includeSize)
+    public IReadOnlyList<DbOverview1> GetOverview1(bool includeSize)
     {
       if(!HasDbV1)
       {
-        return Array.Empty<DbOverview>();
+        return Array.Empty<DbOverview1>();
       }
       using(var db = OpenInnerDatabase1(false))
       {
         return includeSize ? db.GetOverview() : db.GetOverviewWithoutSize();
+      }
+    }
+
+    /// <summary>
+    /// Get an overview of the (v2) data.
+    /// </summary>
+    /// <param name="includeCounts">
+    /// Include event counts (big performance hit!)
+    /// </param>
+    public IReadOnlyList<DbOverviewRow> GetOverview2(bool includeCounts)
+    {
+      if(!HasDbV2)
+      {
+        return Array.Empty<DbOverviewRow>();
+      }
+      using(var db = OpenInnerDatabase2(false))
+      {
+        return db.GetOverview(includeCounts).ToList().AsReadOnly();
       }
     }
 

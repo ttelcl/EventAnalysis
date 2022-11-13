@@ -24,7 +24,7 @@ let run args =
       verbose <- true
       rest |> parsemore o
     | "-h" :: _ ->
-      Usage.usage "overview"
+      Usage.usage "overview1"
       exit 0
     | "-save" :: rest ->
       rest |> parsemore {o with Save = true}
