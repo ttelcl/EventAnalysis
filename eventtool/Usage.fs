@@ -29,6 +29,11 @@ let usage targetCommand =
     cp "   Print or save a list of known event log channel names on this computer."
     if detailed then
       ()
+  if targetMatch "overview" then
+    cp "\foeventtool \fyoverview\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-counts\f0]"
+    cp "   Print provider, event, task and opcode info for the channel. Optionally include event counts."
+    if detailed then
+      ()
   if targetMatch "init" then
     cp "\foeventtool \fyinit\f0 \fg-channel \fc<channel>\f0 [\fg-job \fc<jobname>\f0|\fg-J\f0] [\fg-admin\f0] [\fg-m \fc<machine>\f0]"
     cp "   Create a new event channel job (configuration file, folder structure, empty database)."
@@ -47,11 +52,6 @@ let usage targetCommand =
       cp "   \fg-cap \fc<n>\f0             The maximum number of events to copy"
       cp "   \fg-db1 \fx   \f0             Update the legacy (V1) database"
       cp "   \fg-db2 \fx   \f0             Update the new (V2) database"
-  if targetMatch "overview1" then
-    cp "\foeventtool \fyoverview1\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-nosize\f0]"
-    cp "   Print event and task statistics and settings for the channel, using the legacy data."
-    if detailed then
-      ()
   if targetMatch "plc-dump" then
     cp "\foeventtool \fyplc-dump\f0 [\fg-from \fc<rid>\f0] [\fg-to \fc<rid>\f0] [\fg-job \fc<job>\f0 {\fg-e \fc<eid>\f0}] [\fg-m \fc<machine>\f0]"
     cp "   Backward compat event dump file export (if -job and -e are omitted)"
@@ -61,16 +61,6 @@ let usage targetCommand =
     if detailed then
       cp "   \fg-job \fc<jobname>\f0       The name of a job or channel to extract events from"
       cp "   \fg-n \fc<n>\f0               The number of events to extract. Default 2. The events are smoothly spread."
-  //if targetMatch "disable" then
-  //  cp "\foeventtool \fydisable\f0 \fg-job \fc<jobname>\f0 {\fg-e \fc<event-id>\f0}"
-  //  cp "   \frNot yet implemented!\f0 Disable import of one or more event types for a channel."
-  //  if detailed then
-  //    ()
-  //if targetMatch "enable" then
-  //  cp "\foeventtool \fyenable\f0 \fg-job \fc<jobname>\f0 {\fg-e \fc<event-id>\f0}"
-  //  cp "   \frNot yet implemented!\f0 Re-enable import of one or more event types for a channel."
-  //  if detailed then
-  //    ()
   if targetMatch "export" then
     cp "\foeventtool \fyexport\f0 [\fg-m \fc<machine>\f0] \fg-job \fc<jobname> \fg-file \fc<dumpfile>"
     cp "   \frNot yet implemented!\f0 Export events from an event job database to an event data file."
@@ -79,6 +69,11 @@ let usage targetCommand =
   if targetMatch "import" then
     cp "\foeventtool \fyimport\f0 \fg-m \fc<machine>\f0 \fg-job \fc<jobname> \fg-file \fc<dumpfile>"
     cp "   \frNot yet implemented!\f0 Import events from an event data file into an event job database."
+    if detailed then
+      ()
+  if targetMatch "overview1" then
+    cp "\fR(legacy) \foeventtool \fyoverview1\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-nosize\f0]"
+    cp "   \fkPrint event and task statistics and settings for the channel, using the \fRlegacy\fk data\f0."
     if detailed then
       ()
   

@@ -26,6 +26,8 @@ let rec run arglist =
     rest |> JobChannelInit.run
   | "overview1" :: rest ->
     rest |> AppOverview.run
+  | "overview" :: rest ->
+    rest |> AppOverview2.run
   | "update" :: rest ->
     rest |> AppUpdate.run
   | "jobs" :: rest ->

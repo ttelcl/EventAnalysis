@@ -384,6 +384,35 @@ ORDER BY rid " + (reverse ? "DESC" : "ASC");
     }
 
     /// <summary>
+    /// Get an overview of the distinct provider-event-task-operation combinations
+    /// appearing in the database. Optionally include event counts.
+    /// </summary>
+    /// <param name="includeEvents">
+    /// When true, also event counts are included (at a heavy performance cost).
+    /// When false, event counts are reported as 0.
+    /// </param>
+    /// <returns>
+    /// A sequence of DbOverviewRow objects, sorted by
+    /// (ProviderName, ProviderId, EventId, EventVersion, Taskid, OpcodeId).
+    /// </returns>
+    public IEnumerable<DbOverviewRow> GetOverview(bool includeEvents)
+    {
+      if(includeEvents)
+      {
+        throw new NotImplementedException("'includeEvents' is not yet supported");
+      }
+      else
+      {
+        return Connection.Query<DbOverviewRow>(@"
+SELECT o.prvid, o.eid, o.ever, o.task, o.opid, p.prvname, t.taskdesc, o.opdesc
+FROM OperationInfo o
+LEFT JOIN TaskInfo t USING(eid, ever, task, prvid)
+LEFT JOIN ProviderInfo p USING(prvid)
+ORDER BY p.prvname, p.prvid, o.eid, o.ever, o.task, o.opid");
+      }
+    }
+
+    /// <summary>
     /// Lookup an EventHeader record (use <see cref="FindEvent(long)"/> if you
     /// also want the XML)
     /// </summary>
