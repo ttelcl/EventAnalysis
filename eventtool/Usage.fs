@@ -47,10 +47,9 @@ let usage targetCommand =
       cp "   \fg-cap \fc<n>\f0             The maximum number of events to copy"
       cp "   \fg-db1 \fx   \f0             Update the legacy (V1) database"
       cp "   \fg-db2 \fx   \f0             Update the new (V2) database"
-  if targetMatch "overview" then
-    cp "\foeventtool \fyoverview\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-nosize\f0]"
-    //  [\fg-save\f0]
-    cp "   Print event and task statistics and settings for the channel."
+  if targetMatch "overview1" then
+    cp "\foeventtool \fyoverview1\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-nosize\f0]"
+    cp "   Print event and task statistics and settings for the channel, using the legacy data."
     if detailed then
       ()
   if targetMatch "plc-dump" then

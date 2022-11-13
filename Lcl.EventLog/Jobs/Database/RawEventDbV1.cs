@@ -205,7 +205,7 @@ ORDER BY eid, task").ToList().AsReadOnly();
       /// <summary>
       /// Return an overview of the DB content (using one row per eventId/task combination)
       /// </summary>
-      public IReadOnlyList<DbOverview> GetOverview()
+      public IReadOnlyList<DbOverview1> GetOverview()
       {
         // First make sure there actually is anything in the tables.
         // Otherwise the main query below will fail hard.
@@ -221,9 +221,9 @@ LEFT JOIN Tasks t ON s.eid = t.eid
 ").ToList();
         if(witness.Count == 0)
         {
-          return Array.Empty<DbOverview>();
+          return Array.Empty<DbOverview1>();
         }
-        return Connection.Query<DbOverview>(@"
+        return Connection.Query<DbOverview1>(@"
 SELECT
   t.eid as eventId,
   t.task as taskId,
@@ -246,9 +246,9 @@ ORDER BY t.eid, t.task").ToList().AsReadOnly();
       /// Return an overview of the DB content (using one row per eventId/task combination).
       /// The XML size is not calculated and returned as 0 instead
       /// </summary>
-      public IReadOnlyList<DbOverview> GetOverviewWithoutSize()
+      public IReadOnlyList<DbOverview1> GetOverviewWithoutSize()
       {
-        return Connection.Query<DbOverview>(@"
+        return Connection.Query<DbOverview1>(@"
 SELECT
   t.eid as eventId,
   t.task as taskId,

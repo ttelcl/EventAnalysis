@@ -261,11 +261,11 @@ namespace Lcl.EventLog.Jobs
     /// one per unique (event ID, task ID) combination (usually that
     /// means one row per event ID)
     /// </summary>
-    public IReadOnlyList<DbOverview> GetOverview1(bool includeSize)
+    public IReadOnlyList<DbOverview1> GetOverview1(bool includeSize)
     {
       if(!HasDbV1)
       {
-        return Array.Empty<DbOverview>();
+        return Array.Empty<DbOverview1>();
       }
       using(var db = OpenInnerDatabase1(false))
       {
