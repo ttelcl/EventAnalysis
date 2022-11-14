@@ -58,9 +58,36 @@ namespace Lcl.EventLog.Jobs.Database
     /// <summary>
     /// Ensure the database tables exist.
     /// </summary>
-    public void DbInit()
+    /// <returns>
+    /// True if any DB objects were created, false if they already existed.
+    /// </returns>
+    public bool DbInit()
     {
-      InitTables();
+      var tablesCreated = InitTables();
+      var viewCreated = InitCompositeView();
+      return tablesCreated || viewCreated;
+    }
+
+    /// <summary>
+    /// Return the names of the tables in the DB
+    /// </summary>
+    public IEnumerable<string> DbTables()
+    {
+      return Connection.Query<string>(@"
+SELECT name
+FROM sqlite_master
+WHERE type = 'table'");
+    }
+
+    /// <summary>
+    /// Return the names of the views in the DB
+    /// </summary>
+    public IEnumerable<string> DbViews()
+    {
+      return Connection.Query<string>(@"
+SELECT name
+FROM sqlite_master
+WHERE type = 'view'");
     }
 
     /// <summary>
@@ -679,14 +706,42 @@ VALUES (@Rid, @Xml)"
         ehr.ProviderId, ehr.OperationId, xml);
     }
 
-    private void InitTables()
+    private bool InitCompositeView()
+    {
+      var viewNames = DbViews().ToList();
+      if(viewNames.Contains("Composite"))
+      {
+        return false;
+      }
+      else
+      {
+        Connection.Execute(@"
+CREATE VIEW Composite AS
+	SELECT h.*, p.prvname, x.xml
+	FROM EventHeader h
+	JOIN ProviderInfo p USING (prvid)
+	JOIN EventXml x USING (rid)");
+        return true;
+      }
+    }
+    
+    private bool InitTables()
     {
       if(!CanWrite || !CanCreate)
       {
         throw new InvalidOperationException(
           "Cannot create tables. The database connection is in no-create mode.");
       }
-      Connection.Execute(__dbCreateSql);
+      var tableNames = DbTables().ToList();
+      if(tableNames.Contains("EventXml"))
+      {
+        return false;
+      }
+      else
+      {
+        Connection.Execute(__dbCreateSql);
+        return true;
+      }
     }
 
     private const string __dbCreateSql = @"

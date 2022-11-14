@@ -435,6 +435,28 @@ namespace Lcl.EventLog.Jobs
       }
     }
 
+    /// <summary>
+    /// Upgrade the V2 DB, adding some new DB objects if missing
+    /// </summary>
+    public bool UpgradeDb()
+    {
+      if(Zone.ReadOnly)
+      {
+        throw new InvalidOperationException(
+          "Cannot upgrade DB: the data zone is read-only");
+      }
+      if(!HasDbV2)
+      {
+        InitFolder();
+      }
+      // The following creates the DB if needed, and creates missing DB objects
+      var redb2 = new RawEventDbV2(RawDbFileV2, true, true);
+      using(var db2 = redb2.Open(true, true))
+      {
+        return db2.DbInit(); // this now includes the upgrade
+      }
+    }
+
     private void InitFolder()
     {
       if(!Directory.Exists(JobFolder))
