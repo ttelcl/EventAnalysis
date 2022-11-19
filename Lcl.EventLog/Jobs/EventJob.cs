@@ -103,6 +103,7 @@ namespace Lcl.EventLog.Jobs
     /// Insert missing records into the V2 database from the event log, taking into
     /// account the filter settings. This overload opens the inner db, performs
     /// the update, then closes it again.
+    /// Also updates touch tag files in the DB folder.
     /// </summary>
     /// <param name="cap">
     /// The maximum number of records to insert
@@ -122,9 +123,47 @@ namespace Lcl.EventLog.Jobs
     /// </exception>
     public int UpdateDb2(int cap = Int32.MaxValue)
     {
-      using(var db = OpenInnerDatabase2(true))
+      int updateCount;
+      EventHeaderRow? lastEvent;
+      // Cannot use OpenInnerDatabase because we still need the outer database afterward.
+      var redb = OpenDatabase2(true);
+      using(var db = redb.Open(true))
       {
-        return UpdateDb2(db, cap);
+        updateCount = UpdateDb2(db, cap);
+        var lastRid = db.MaxRecordId();
+        lastEvent = lastRid.HasValue ? db.FindEventHeader(lastRid.Value) : null;
+      }
+      // update tag files
+      var dir = redb.DbDirectory;
+
+      var dbUpdatedTagFile = Path.Combine(dir, "db-updated.tag");
+      TouchFile(dbUpdatedTagFile);
+      var dbStamp = File.GetLastWriteTimeUtc(redb.FileName);
+      File.SetLastWriteTimeUtc(dbUpdatedTagFile, dbStamp);
+
+      var lastEventFile = Path.Combine(dir, "last-event.rid.txt");
+      if(lastEvent != null)
+      {
+        File.WriteAllText(lastEventFile, lastEvent.RecordId.ToString());
+        var eventStamp = lastEvent.Stamp.EpochDateTime();
+        File.SetLastWriteTimeUtc(lastEventFile, eventStamp);
+      }
+      
+      var dbUpdateRunTagFile = Path.Combine(dir, "db-update-run.tag");
+      TouchFile(dbUpdateRunTagFile);
+      var now = DateTime.UtcNow;
+      File.SetLastWriteTimeUtc(dbUpdateRunTagFile, now);
+      
+      return updateCount;
+    }
+
+    private static void TouchFile(string fileName)
+    {
+      if(!File.Exists(fileName))
+      {
+        using(var _ = File.Create(fileName))
+        {
+        }
       }
     }
 

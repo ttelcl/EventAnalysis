@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -26,8 +27,13 @@ namespace Lcl.EventLog.Jobs.Database
   /// </summary>
   public class OpenDbV2: IDisposable
   {
-    internal OpenDbV2(SqliteConnection conn, bool canWrite, bool canCreate)
+    internal OpenDbV2(
+      RawEventDbV2 owner,
+      SqliteConnection conn,
+      bool canWrite,
+      bool canCreate)
     {
+      Owner = owner;
       Connection = conn;
       CanWrite = canWrite;
       CanCreate = canCreate;
@@ -45,6 +51,11 @@ namespace Lcl.EventLog.Jobs.Database
     public bool CanCreate { get; }
 
     internal SqliteConnection Connection { get; }
+
+    /// <summary>
+    /// The database descriptor owning this opened DB
+    /// </summary>
+    public RawEventDbV2 Owner { get; }
 
     /// <summary>
     /// Dispose this object and the db connection it wraps
@@ -536,7 +547,8 @@ WHERE h.rid=@RecordId",
     {
       var aboveRid = MaxRecordId();
       var ers = new EventRecordSource(eventLogName);
-      return PutEvents(ers.ReadRecords(aboveRid), cap);
+      var updateCount = PutEvents(ers.ReadRecords(aboveRid), cap);
+      return updateCount;
     }
 
     /// <summary>
