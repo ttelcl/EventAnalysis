@@ -129,10 +129,15 @@ let run args =
       else
         o.EventCount
     cp $"Picking \fb{ecount}\f0 events from \fc{recordIds.Length}\f0 available events"
-    let picker i =
-      let idx = ((recordIds.Length-1) * i) / (ecount-1)
-      recordIds[idx]
-    let selection = Array.init (ecount) picker
+    let selection =
+      if ecount > 1 then
+        let picker i =
+          let idx = ((recordIds.Length-1) * i) / (ecount-1)
+          recordIds[idx]
+        Array.init (ecount) picker
+      else
+        // special case for n = 1: pick most recent record
+        [| recordIds[recordIds.Length - 1] |]
     use odb = job.OpenInnerDatabase2(false)
     for rid in selection do
       let e = odb.FindEvent(rid)

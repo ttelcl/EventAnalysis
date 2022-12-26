@@ -40,6 +40,20 @@ namespace Lcl.EventLog.Jobs.Database
     public string FileName { get; }
 
     /// <summary>
+    /// The directory in which the database file exists
+    /// </summary>
+    public string DbDirectory {
+      get {
+        var dir = Path.GetDirectoryName(FileName);
+        if(String.IsNullOrEmpty(dir))
+        {
+          throw new InvalidOperationException("Bad db name");
+        }
+        return dir;
+      }
+    }
+
+    /// <summary>
     /// Allow opening the DB in writable mode
     /// </summary>
     public bool AllowWrite { get; }
@@ -96,11 +110,7 @@ namespace Lcl.EventLog.Jobs.Database
       {
         if(create)
         {
-          var dir = Path.GetDirectoryName(FileName);
-          if(dir == null)
-          {
-            throw new InvalidOperationException("Bad db name");
-          }
+          var dir = DbDirectory;
           if(!Directory.Exists(dir))
           {
             Directory.CreateDirectory(dir);
@@ -118,7 +128,7 @@ namespace Lcl.EventLog.Jobs.Database
         ForeignKeys = true,
       };
       var conn = new SqliteConnection(builder.ConnectionString);
-      return new OpenDbV2(conn, writable, create);
+      return new OpenDbV2(this, conn, writable, create);
     }
   }
 

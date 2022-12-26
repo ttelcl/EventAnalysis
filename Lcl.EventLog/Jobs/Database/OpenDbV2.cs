@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -26,8 +27,13 @@ namespace Lcl.EventLog.Jobs.Database
   /// </summary>
   public class OpenDbV2: IDisposable
   {
-    internal OpenDbV2(SqliteConnection conn, bool canWrite, bool canCreate)
+    internal OpenDbV2(
+      RawEventDbV2 owner,
+      SqliteConnection conn,
+      bool canWrite,
+      bool canCreate)
     {
+      Owner = owner;
       Connection = conn;
       CanWrite = canWrite;
       CanCreate = canCreate;
@@ -47,6 +53,11 @@ namespace Lcl.EventLog.Jobs.Database
     internal SqliteConnection Connection { get; }
 
     /// <summary>
+    /// The database descriptor owning this opened DB
+    /// </summary>
+    public RawEventDbV2 Owner { get; }
+
+    /// <summary>
     /// Dispose this object and the db connection it wraps
     /// </summary>
     public void Dispose()
@@ -58,9 +69,36 @@ namespace Lcl.EventLog.Jobs.Database
     /// <summary>
     /// Ensure the database tables exist.
     /// </summary>
-    public void DbInit()
+    /// <returns>
+    /// True if any DB objects were created, false if they already existed.
+    /// </returns>
+    public bool DbInit()
     {
-      InitTables();
+      var tablesCreated = InitTables();
+      var viewCreated = InitCompositeView();
+      return tablesCreated || viewCreated;
+    }
+
+    /// <summary>
+    /// Return the names of the tables in the DB
+    /// </summary>
+    public IEnumerable<string> DbTables()
+    {
+      return Connection.Query<string>(@"
+SELECT name
+FROM sqlite_master
+WHERE type = 'table'");
+    }
+
+    /// <summary>
+    /// Return the names of the views in the DB
+    /// </summary>
+    public IEnumerable<string> DbViews()
+    {
+      return Connection.Query<string>(@"
+SELECT name
+FROM sqlite_master
+WHERE type = 'view'");
     }
 
     /// <summary>
@@ -509,7 +547,8 @@ WHERE h.rid=@RecordId",
     {
       var aboveRid = MaxRecordId();
       var ers = new EventRecordSource(eventLogName);
-      return PutEvents(ers.ReadRecords(aboveRid), cap);
+      var updateCount = PutEvents(ers.ReadRecords(aboveRid), cap);
+      return updateCount;
     }
 
     /// <summary>
@@ -679,14 +718,42 @@ VALUES (@Rid, @Xml)"
         ehr.ProviderId, ehr.OperationId, xml);
     }
 
-    private void InitTables()
+    private bool InitCompositeView()
+    {
+      var viewNames = DbViews().ToList();
+      if(viewNames.Contains("Composite"))
+      {
+        return false;
+      }
+      else
+      {
+        Connection.Execute(@"
+CREATE VIEW Composite AS
+	SELECT h.*, p.prvname, x.xml
+	FROM EventHeader h
+	JOIN ProviderInfo p USING (prvid)
+	JOIN EventXml x USING (rid)");
+        return true;
+      }
+    }
+    
+    private bool InitTables()
     {
       if(!CanWrite || !CanCreate)
       {
         throw new InvalidOperationException(
           "Cannot create tables. The database connection is in no-create mode.");
       }
-      Connection.Execute(__dbCreateSql);
+      var tableNames = DbTables().ToList();
+      if(tableNames.Contains("EventXml"))
+      {
+        return false;
+      }
+      else
+      {
+        Connection.Execute(__dbCreateSql);
+        return true;
+      }
     }
 
     private const string __dbCreateSql = @"

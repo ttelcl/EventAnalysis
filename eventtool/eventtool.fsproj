@@ -31,7 +31,7 @@
 
   <ItemGroup>
     <PackageReference Include="Lcl.XsvLib" Version="1.2.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.10" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.11" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="System.Diagnostics.EventLog" Version="6.0.0" />
   </ItemGroup>

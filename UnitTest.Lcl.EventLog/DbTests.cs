@@ -62,7 +62,19 @@ namespace UnitTest.Lcl.EventLog
       var redb = new RawEventDbV2(dbName, true, true);
       using(var db = redb.Open(true, true))
       {
-        db.DbInit();
+        var tables = db.DbTables().ToList();
+        Assert.Empty(tables);
+        var views = db.DbViews().ToList();
+        Assert.Empty(views);
+        var created = db.DbInit();
+        Assert.True(created);
+        tables = db.DbTables().ToList();
+        Assert.Contains("EventXml", tables);
+        views = db.DbViews().ToList();
+        Assert.Contains("Composite", views);
+        // test idempotence of DbInit
+        created = db.DbInit();
+        Assert.False(created);
       }
       Assert.True(File.Exists(dbName));
     }

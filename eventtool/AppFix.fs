@@ -54,6 +54,9 @@ let run args =
       cp $"V2 DB is missing: \fo{job.RawDbFileV2}\f0"
     if job.HasDbV1 && job.HasDbV2 then
       cp "\fgBoth databases already exist\f0."
+      let upgrade = job.UpgradeDb()
+      if upgrade then
+        cp "\fyUpgraded the V2 DB\f0"
     else
       cp "\fyInitializing missing databases\f0"
       job.InitDb()
