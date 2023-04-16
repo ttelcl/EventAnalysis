@@ -34,6 +34,8 @@ let rec run arglist =
     rest |> AppJobs.run
   | "samples" :: rest ->
     rest |> AppSamples.run
+  | "dump" :: rest ->
+    rest |> AppDump.run
   | "plc-dump" :: rest
   | "plcdump" :: rest ->
     rest |> AppPlcDump.run

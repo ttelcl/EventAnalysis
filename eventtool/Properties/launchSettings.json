@@ -1,8 +1,7 @@
 {
   "profiles": {
     "eventtool": {
-      "commandName": "Project",
-      "commandLineArgs": "update -job application -cap 15000 -v"
+      "commandName": "Project"
     }
   }
 }

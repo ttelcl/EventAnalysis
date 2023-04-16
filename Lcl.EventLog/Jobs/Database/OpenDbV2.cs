@@ -226,6 +226,7 @@ WHERE eid=@Eid AND ever=@Ever AND task=@TaskId AND prvid=@PrvId AND opid=@OpId",
     /// <param name="tMax">Maximum event timestamp as epoch ticks</param>
     /// <param name="prvid">The exact internal provider ID</param>
     /// <param name="reverse">Return results in reverse RID order when true.</param>
+    /// <param name="limit">The maximum number of rows to return</param>
     /// <returns>A sequence of EventHeaderRow objects</returns>
     public IEnumerable<EventHeaderRow> QueryEventHeaders(
       long? ridMin = null,
@@ -234,7 +235,8 @@ WHERE eid=@Eid AND ever=@Ever AND task=@TaskId AND prvid=@PrvId AND opid=@OpId",
       long? tMin = null,
       long? tMax = null,
       int? prvid = null,
-      bool reverse = false)
+      bool reverse = false,
+      int? limit = null)
     {
       var q = @"
 SELECT rid, stamp, eid, ever, task, prvid, opid
@@ -273,6 +275,11 @@ WHERE " + String.Join(@"
       }
       q += @"
 ORDER BY rid " + (reverse ? "DESC" : "ASC");
+      if(limit != null && limit > 0 && limit < Int32.MaxValue)
+      {
+        q += $@"
+LIMIT {limit.Value}";
+      }
 
       return Connection.Query<EventHeaderRow>(q, new {
         RidMin = ridMin,
@@ -294,6 +301,7 @@ ORDER BY rid " + (reverse ? "DESC" : "ASC");
     /// <param name="tMax">Maximum event timestamp as epoch ticks</param>
     /// <param name="prvid">The exact internal provider ID</param>
     /// <param name="reverse">Return results in reverse RID order when true.</param>
+    /// <param name="limit">The maximum number of rows to return</param>
     /// <returns></returns>
     public IEnumerable<EventViewRow> QueryEvents(
       long? ridMin = null,
@@ -302,7 +310,8 @@ ORDER BY rid " + (reverse ? "DESC" : "ASC");
       long? tMin = null,
       long? tMax = null,
       int? prvid = null,
-      bool reverse = false)
+      bool reverse = false,
+      int? limit = null)
     {
       var q = @"
 SELECT h.rid, h.stamp, h.eid, h.ever, h.task, h.prvid, h.opid, x.xml
@@ -342,6 +351,11 @@ WHERE " + String.Join(@"
       }
       q += @"
 ORDER BY h.rid " + (reverse ? "DESC" : "ASC");
+      if(limit != null && limit > 0 && limit < Int32.MaxValue)
+      {
+        q += $@"
+LIMIT {limit.Value}";
+      }
 
       return Connection.Query<EventViewRow>(q, new {
         RidMin = ridMin,

@@ -41,20 +41,6 @@ let usage targetCommand =
       cp "   \fg-channel \fc<channel>\f0   The event log channel name"
       cp "   \fg-job \fc<jobname>\f0       The alias used to identify the channel."
       cp "   \fg-J\fx\f0                   Derive a job name from the channel name."
-  if targetMatch "fix" then
-    cp "\foeventtool \fyfix\f0 [\fg-job \fc<jobname>\f0|\fg-all\f0] [\fg-m \fc<machine>\f0]"
-    cp "   Create missing database files for the job."
-  if targetMatch "update" then
-    cp "\foeventtool \fyupdate\f0 {\fg-job \fc<jobname>\f0} \fg-cap \fc<n>\f0 [\fg-db1\f0] [\fg-db2\f0]"
-    cp "   Run one or more jobs, transferring events from the event log channel into the job's DB."
-    if detailed then
-      cp "   \fg-job \fc<jobname>\f0       The name of a job or channel"
-      cp "   \fg-cap \fc<n>\f0             The maximum number of events to copy"
-      cp "   \fg-db1 \fx   \f0             Update the legacy (V1) database"
-      cp "   \fg-db2 \fx   \f0             Update the new (V2) database"
-  if targetMatch "plc-dump" then
-    cp "\foeventtool \fyplc-dump\f0 [\fg-from \fc<rid>\f0] [\fg-to \fc<rid>\f0] [\fg-job \fc<job>\f0 {\fg-e \fc<eid>\f0}] [\fg-m \fc<machine>\f0]"
-    cp "   Backward compat event dump file export (if -job and -e are omitted)"
   if targetMatch "samples" then
     cp "\foeventtool \fysamples\f0 \fg-job \fc<jobname>\f0 [\fg-p \fc<provider>\f0] \fg-e \fc<event-id>\f0 [\fg-n \fc<n>\f0] [\fg-m \fc<machine>\f0]"
     cp "   Extract sample events from a store (using V2 database)"
@@ -65,6 +51,31 @@ let usage targetCommand =
       cp "   \fg-e \fc<event-id>\f0        The event ID. In case multiple providers provide the same event, a \fg-p\f0 option is required."
       cp "   \fg-p \fc<provider>\f0        Disambiguate the event source. \fc<provider>\f0 can be a provider ID or a unique part of"
       cp "   \fx\fx\fx                     the provider name. Use \foeventtool \fyoverview\f0 to discover provider names for an event."
+  if targetMatch "update" then
+    cp "\foeventtool \fyupdate\f0 {\fg-job \fc<jobname>\f0} \fg-cap \fc<n>\f0 [\fg-db1\f0] [\fg-db2\f0]"
+    cp "   Run one or more jobs, transferring events from the event log channel into the job's DB."
+    if detailed then
+      cp "   \fg-job \fc<jobname>\f0       The name of a job or channel"
+      cp "   \fg-cap \fc<n>\f0             The maximum number of events to copy"
+      cp "   \fg-db1 \fx   \f0             Update the legacy (V1) database"
+      cp "   \fg-db2 \fx   \f0             Update the new (V2) database"
+  if targetMatch "dump" then
+    cp "\foeventtool \fydump\f0 [\fg-list\f0] \fg-job \fc<jobname>\f0 \fg-e \fc<event>\f0 [\fg-p \fc<provider>\f0] [\fg-n \fc<n>\f0|\fg-N\f0] [\fg-to \fc<rid>\f0]"
+    cp "   Dump data for matching events to a CSV file. Events are processed from newest to oldest."
+    if detailed then
+      cp "   \fg-list\fx\fx\f0             Instead of dumping, just list the fields found in the first record"
+      cp "   \fg-job \fc<jobname>\f0       The name of a job or channel"
+      cp "   \fg-e \fc<event>\f0           The ID of the event to dump"
+      cp "   \fg-p \fc<provider>\f0        The id or (partial) name of the event provider to disambiguate the event ID"
+      cp "   \fg-n \fc<n>\f0               The maximum number of events to dump (default 1000)"
+      cp "   \fg-N \fx\fx                  Remove the cap on the number of events (equivalent to \fg-n \fc2147483647\f0)"
+      cp "   \fg-to \fc<rid>\f0            Enumerate events going back from record id \fc<rid>\f0 (default: last known RID)"
+  if targetMatch "fix" then
+    cp "\foeventtool \fyfix\f0 [\fg-job \fc<jobname>\f0|\fg-all\f0] [\fg-m \fc<machine>\f0]"
+    cp "   Create missing database files for the job."
+  if targetMatch "plc-dump" then
+    cp "\foeventtool \fyplc-dump\f0 [\fg-from \fc<rid>\f0] [\fg-to \fc<rid>\f0] [\fg-job \fc<job>\f0 {\fg-e \fc<eid>\f0}] [\fg-m \fc<machine>\f0]"
+    cp "   Backward compat event dump file export (if -job and -e are omitted)"
   if targetMatch "export" then
     cp "\foeventtool \fyexport\f0 [\fg-m \fc<machine>\f0] \fg-job \fc<jobname> \fg-file \fc<dumpfile>"
     cp "   \frNot yet implemented!\f0 Export events from an event job database to an event data file."

@@ -73,6 +73,39 @@ namespace Lcl.EventLog.Utilities.Xml
     }
 
     /// <summary>
+    /// Return a dictionary mapping the data values to their values.
+    /// If the document has no values, an empty dictionary is returned.
+    /// If the data values have no names, names are synthesised based on the
+    /// element indices
+    /// </summary>
+    public Dictionary<string, string> MapData()
+    {
+      var nav = CreateNavigator();
+      var map = new Dictionary<string, string>();
+      var eventData = nav.SelectSingleNode("/Event/EventData");
+      if(eventData != null)
+      {
+        var dataElements = eventData.SelectChildren("Data", eventData.NamespaceURI);
+        if(dataElements != null)
+        {
+          var index = 0;
+          while(dataElements.MoveNext())
+          {
+            var name = (string?)(dataElements.Current!.Evaluate("string(@Name)"));
+            if(String.IsNullOrEmpty(name))
+            {
+              name = "X" + index.ToString("D2");
+            }
+            var value = dataElements.Current.InnerXml;
+            map[name!] = value;
+            index++;
+          }
+        }
+      }
+      return map;
+    }
+
+    /// <summary>
     /// Like eval, but throws an exception if the return value is null or empty
     /// </summary>
     public string EvalNotEmpty(string xpath)
