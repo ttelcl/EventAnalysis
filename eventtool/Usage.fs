@@ -51,6 +51,12 @@ let usage targetCommand =
       cp "   \fg-e \fc<event-id>\f0        The event ID. In case multiple providers provide the same event, a \fg-p\f0 option is required."
       cp "   \fg-p \fc<provider>\f0        Disambiguate the event source. \fc<provider>\f0 can be a provider ID or a unique part of"
       cp "   \fx\fx\fx                     the provider name. Use \foeventtool \fyoverview\f0 to discover provider names for an event."
+  if targetMatch "job-sample" then
+    cp "\foeventtool \fyjob-sample\f0 \fg-job \fc<jobname>\f0 [\fg-n \fc<n>\f0] [\fg-m \fc<machine>\f0]"
+    cp "   Create a sample dump XML file containing a sample for each distinct provider/event combination"
+    if detailed then
+      cp "   \fg-job \fc<jobname>\f0       The name of a job or channel to extract events from"
+      cp "   \fg-n\f0\fx                   The number of events to include. This can be \fb0\f0 to not include any event samples."
   if targetMatch "update" then
     cp "\foeventtool \fyupdate\f0 {\fg-job \fc<jobname>\f0} \fg-cap \fc<n>\f0 [\fg-db1\f0] [\fg-db2\f0]"
     cp "   Run one or more jobs, transferring events from the event log channel into the job's DB."

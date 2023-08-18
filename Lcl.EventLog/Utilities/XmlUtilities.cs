@@ -123,5 +123,46 @@ namespace Lcl.EventLog.Utilities
       }
       return Encoding.UTF8.GetString(bytes);
     }
+
+    /// <summary>
+    /// Starts writing XML to the specified file in UTF-8,
+    /// already writing the XML declaration.
+    /// </summary>
+    /// <param name="fileName">
+    /// The name of the file to write
+    /// </param>
+    /// <returns>
+    /// The XmlWriter, open for writing. No root element has been
+    /// written to it yet.
+    /// </returns>
+    public static XmlWriter StartXmlFile(string fileName)
+    {
+      var settings = new XmlWriterSettings {
+        CheckCharacters = false,
+        Indent = true,
+        ConformanceLevel = ConformanceLevel.Document,
+        Encoding = Encoding.UTF8,
+      };
+      return XmlWriter.Create(fileName, settings);
+    }
+
+    /// <summary>
+    /// Load the XML string and write it to the XML writer according
+    /// to the XML writer's settings (e.g. indenting)
+    /// </summary>
+    /// <param name="xw">
+    /// The XML writer to write to, for instance created via <see cref="StartXmlFile(string)"/>
+    /// </param>
+    /// <param name="xml">
+    /// The string representation of the XML to write. This will be "fixed up"
+    /// using <see cref="FixXml"/> before loading.
+    /// </param>
+    public static void AppendXml(this XmlWriter xw, string xml)
+    {
+      var xpd = LoadXml(xml);
+      var nav = xpd.CreateNavigator();
+      nav.WriteSubtree(xw);
+    }
+
   }
 }

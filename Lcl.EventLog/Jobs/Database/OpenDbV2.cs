@@ -302,6 +302,9 @@ LIMIT {limit.Value}";
     /// <param name="prvid">The exact internal provider ID</param>
     /// <param name="reverse">Return results in reverse RID order when true.</param>
     /// <param name="limit">The maximum number of rows to return</param>
+    /// <param name="task">The exact task id (null for 'any')</param>
+    /// <param name="ever">The exact event version (null for 'any')</param>
+    /// <param name="opid">The exact operation id (null for 'any')</param>
     /// <returns></returns>
     public IEnumerable<EventViewRow> QueryEvents(
       long? ridMin = null,
@@ -311,7 +314,10 @@ LIMIT {limit.Value}";
       long? tMax = null,
       int? prvid = null,
       bool reverse = false,
-      int? limit = null)
+      int? limit = null,
+      int? task = null,
+      int? ever = null,
+      int? opid = null)
     {
       var q = @"
 SELECT h.rid, h.stamp, h.eid, h.ever, h.task, h.prvid, h.opid, x.xml
@@ -342,6 +348,19 @@ INNER JOIN EventXml x on x.rid = h.rid";
       {
         conditions.Add("prvid = @PrvId");
       }
+      if(task != null)
+      {
+        conditions.Add("task = @TaskId");
+      }
+      if(ever != null)
+      {
+        conditions.Add("ever = @EvVer");
+      }
+      if(opid != null)
+      {
+        conditions.Add("opid = @OpId");
+      }
+
       if(conditions.Count > 0)
       {
         var condition = @"
@@ -364,6 +383,9 @@ LIMIT {limit.Value}";
         TMin = tMin,
         TMax = tMax,
         PrvId = prvid,
+        TaskId = task,
+        EvVer = ever,
+        OpId = opid,
       });
     }
 
