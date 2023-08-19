@@ -7,8 +7,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Xml.Linq;
 using System.Xml.XPath;
 
 namespace Lcl.EventLog.Utilities.Xml
@@ -44,7 +46,7 @@ namespace Lcl.EventLog.Utilities.Xml
     /// Evaluate the XPath expression to a string.
     /// The expression is wrapped in a "string()" XPath function call.
     /// Non-existent nodes will result in an empty string being returned.
-    /// The prefixes :sys:, :data: and :udata: transform the expression like
+    /// The prefixes :sys:, :data:, and :udata: transform the expression like
     /// EvalSystem, EvalData and EvalUserData
     /// </summary>
     /// <remarks>
@@ -62,7 +64,7 @@ namespace Lcl.EventLog.Utilities.Xml
           var suffix = parts[2];
           xpath = prefixKey switch {
             "sys" => "/Event/System/" + suffix,
-            "data" => $"/Event/EventData/Data[@Name='{suffix}']",
+            "data" => DataXpath(suffix),
             "udata" => "/Event/UserData/*/" + suffix,
             _ => throw new InvalidOperationException(
                             $"Unrecognized expression prefix ':{prefixKey}:'"),
@@ -76,7 +78,7 @@ namespace Lcl.EventLog.Utilities.Xml
     /// Return a dictionary mapping the data values to their values.
     /// If the document has no values, an empty dictionary is returned.
     /// If the data values have no names, names are synthesised based on the
-    /// element indices
+    /// element indices, using 1-based indexes (for xpath compatibility)
     /// </summary>
     public Dictionary<string, string> MapData()
     {
@@ -88,13 +90,13 @@ namespace Lcl.EventLog.Utilities.Xml
         var dataElements = eventData.SelectChildren("Data", eventData.NamespaceURI);
         if(dataElements != null)
         {
-          var index = 0;
+          var index = 1;
           while(dataElements.MoveNext())
           {
             var name = (string?)(dataElements.Current!.Evaluate("string(@Name)"));
             if(String.IsNullOrEmpty(name))
             {
-              name = "X" + index.ToString("D2");
+              name = "$X" + index.ToString("D2");
             }
             var value = dataElements.Current.InnerXml;
             map[name!] = value;
@@ -140,9 +142,38 @@ namespace Lcl.EventLog.Utilities.Xml
     /// <summary>
     /// Evaluate the value of an element in the /Event/EventData branch
     /// </summary>
-    public string EvalData(string name)
+    /// <param name="nameOrIndexKey">
+    /// The name or the index key. If this has the shape "$X" followed
+    /// by 2 or more digits, the digits are interpreted as a data index.
+    /// Otherwise this parameter is interpreted as data field name
+    /// </param>
+    public string EvalData(string nameOrIndexKey)
     {
-      return Eval($"/Event/EventData/Data[@Name='{name}']");
+      var xpath = DataXpath(nameOrIndexKey);
+      return Eval(xpath);
+    }
+
+    /// <summary>
+    /// Convert a data key into an xpath expression, supporting both
+    /// named and indexed keys
+    /// </summary>
+    /// <param name="nameOrIndexKey">
+    /// The name or the index key. If this has the shape "$X" followed
+    /// by 2 or more digits, the digits are interpreted as a data index.
+    /// Otherwise this parameter is interpreted as data field name
+    /// </param>
+    public static string DataXpath(string nameOrIndexKey)
+    {
+      var match = Regex.Match(nameOrIndexKey, @"^\$X(\d\d+)$");
+      if(match.Success)
+      {
+        var index = Int32.Parse(match.Groups[1].Value);
+        return $"/Event/EventData/Data[{index}]";
+      }
+      else
+      {
+        return $"/Event/EventData/Data[@Name='{nameOrIndexKey}']";
+      }
     }
 
     /// <summary>
