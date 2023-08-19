@@ -1,0 +1,25 @@
+﻿// Example export job
+{
+  "source": "security", // the source job (database)
+  "events": { // per-event output column mapping
+    "*": { // common for all events
+      "rid": ":common:rid",
+      "stamp": ":common:eventstamp",
+      "time": ":common:eventtime",
+      "event": ":common:eventid"
+    },
+    "4688": {
+      "pid": "[unsigned]:data:NewProcessId",
+      "name": ":data:NewProcessName",
+      "status": null,  // reserve a column that is not in this event
+      "ppid": "[unsigned]:data:ProcessId",
+      "ppname": ":data:ParentProcessName",
+      "cmd": ":data:CommandLine"
+    },
+    "4689": {
+      "pid": "[unsigned]:data:NewProcessId",
+      "name": ":data:NewProcessName",
+      "status": "[unsigned]:data:Status"
+    }
+  }
+}
