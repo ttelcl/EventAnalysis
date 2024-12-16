@@ -2,8 +2,11 @@
 
 open System
 
+open Newtonsoft.Json
+
 open Lcl.EventLog.Jobs
 open Lcl.EventLog.Jobs.Database
+open Lcl.EventLog.Jobs.Database.Skeleton
 open Lcl.EventLog.Utilities
 open Lcl.EventLog.Utilities.Xml
 
@@ -31,8 +34,14 @@ let private runApp o =
       1
     else
       let onm = $"{o.MachineName}.{o.JobName}.metadump.json"
-      cp $"\fbDBG\f0 output name is \fy{onm}\f0."
-      failwith "NYI"
+      use odb = job.OpenInnerDatabase2(false)
+      let skeleton = ProviderDto.FromDb(odb)
+      let json = JsonConvert.SerializeObject(skeleton, Formatting.Indented)
+      cp $"Saving output to \fy{onm}\f0."
+      do
+        use w = onm |> startFile
+        w.WriteLine(json)
+      onm |> finishFile
       0
 
 let run args =
