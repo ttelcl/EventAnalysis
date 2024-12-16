@@ -9,6 +9,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Lcl.EventLog.Utilities;
+
 using Newtonsoft.Json;
 
 namespace Lcl.EventLog.Jobs.Database
@@ -48,6 +50,5 @@ namespace Lcl.EventLog.Jobs.Database
     /// </summary>
     [JsonProperty("prvguid")]
     public string? ProviderGuid { get; }
-
   }
 }
