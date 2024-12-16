@@ -8,10 +8,10 @@ open XsvLib.Buffers
 open Lcl.EventLog.Jobs
 open Lcl.EventLog.Jobs.Database
 open Lcl.EventLog.Utilities
+open Lcl.EventLog.Utilities.Xml
 
 open ColorPrint
 open CommonTools
-open Lcl.EventLog.Utilities.Xml
 
 type private DumpMode =
   | Normal
