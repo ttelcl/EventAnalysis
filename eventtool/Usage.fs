@@ -85,9 +85,6 @@ let usage targetCommand =
   if targetMatch "fix" then
     cp "\foeventtool \fyfix\f0 [\fg-job \fc<jobname>\f0|\fg-all\f0] [\fg-m \fc<machine>\f0]"
     cp "   Create missing database files for the job."
-  if targetMatch "plc-dump" then
-    cp "\foeventtool \fyplc-dump\f0 [\fg-from \fc<rid>\f0] [\fg-to \fc<rid>\f0] [\fg-job \fc<job>\f0 {\fg-e \fc<eid>\f0}] [\fg-m \fc<machine>\f0]"
-    cp "   Backward compat event dump file export (if -job and -e are omitted)"
   if targetMatch "export" then
     cp "\foeventtool \fyexport\f0 [\fg-m \fc<machine>\f0] \fg-job \fc<jobname> \fg-file \fc<dumpfile>"
     cp "   \frNot yet implemented!\f0 Export events from an event job database to an event data file."
@@ -98,6 +95,9 @@ let usage targetCommand =
     cp "   \frNot yet implemented!\f0 Import events from an event data file into an event job database."
     if detailed then
       ()
+  if targetMatch "plc-dump" then
+    cp "\fR(legacy) \foeventtool \fyplc-dump\f0 [\fg-from \fc<rid>\f0] [\fg-to \fc<rid>\f0] [\fg-job \fc<job>\f0 {\fg-e \fc<eid>\f0}] [\fg-m \fc<machine>\f0]"
+    cp "   \fkBackward compat event dump file export (if -job and -e are omitted)\f0"
   if targetMatch "overview1" then
     cp "\fR(legacy) \foeventtool \fyoverview1\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-nosize\f0]"
     cp "   \fkPrint event and task statistics and settings for the channel, using the \fRlegacy\fk data\f0."
