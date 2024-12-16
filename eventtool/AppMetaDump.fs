@@ -29,13 +29,11 @@ let private runApp o =
     if job = null then
       cp $"\frNo job or channel \f0'\fg{o.JobName}\f0' \frknown for machine \f0'\fc{o.MachineName}\f0'"
       1
-    elif job.HasDbV2 |> not then
-      cp $"\frNo data recorded yet for job \f0'\fg{o.JobName}\f0'"
-      1
     else
+      if job.HasDbV2 |> not then
+        cp $"\foWarning\f0: No data recorded yet for job \f0'\fg{o.JobName}\f0'"
       let onm = $"{o.MachineName}.{o.JobName}.metadump.json"
-      use odb = job.OpenInnerDatabase2(false)
-      let skeleton = ProviderDto.FromDb(odb)
+      let skeleton = ChannelDto.FromJob(job)
       let json = JsonConvert.SerializeObject(skeleton, Formatting.Indented)
       cp $"Saving output to \fy{onm}\f0."
       do

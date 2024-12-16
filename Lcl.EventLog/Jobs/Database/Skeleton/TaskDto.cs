@@ -22,13 +22,13 @@ public class TaskDto
   /// Create a new TaskDto
   /// </summary>
   public TaskDto(
-    int id,
+    [JsonProperty("event")] int eventId,
     int version,
     int task,
     string? description,
     IEnumerable<OperationDto> operations)
   {
-    EventId = id;
+    EventId = eventId;
     EventVersion = version;
     TaskId = task;
     TaskDescription = description;
@@ -38,7 +38,7 @@ public class TaskDto
   /// <summary>
   /// The event ID
   /// </summary>
-  [JsonProperty("id")]
+  [JsonProperty("event")]
   public int EventId { get; }
 
   /// <summary>
