@@ -82,6 +82,17 @@ let usage targetCommand =
       cp "   \fg-n \fc<n>\f0               The maximum number of events to dump (default 1000)"
       cp "   \fg-N \fx\fx                  Remove the cap on the number of events (equivalent to \fg-n \fc2147483647\f0)"
       cp "   \fg-to \fc<rid>\f0            Enumerate events going back from record id \fc<rid>\f0 (default: last known RID)"
+  if targetMatch "archive" then
+    cp "\foeventtool \fyarchive\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-copy\f0|\fg-move\f0] [\fg-days \fc<n>\f0|\fg-n \fc<n>\f0]"
+    cp "   Copy or move the oldest data to a new archive database"
+    if detailed then
+      cp "   \fg-job \fc<jobname>\f0       The name of the job (selecting the database to dump)"
+      cp "   \fg-m \fc<machine>\f0         The machine whose events to inspect (default: current machine)"
+      cp "   \fg-copy \fx\f0               Copy rows"
+      cp "   \fg-move \fx\f0               Move rows: copy and delete from the original"
+      cp "   \fg-days \fc<n>\f0            The number of full days to archive"
+      cp "   \fg-n \fc<n>\f0               The number of records to archive"
+      cp "   (\fomore options to come - WIP\f0)"
   if targetMatch "fix" then
     cp "\foeventtool \fyfix\f0 [\fg-job \fc<jobname>\f0|\fg-all\f0] [\fg-m \fc<machine>\f0]"
     cp "   Create missing database files for the job."
