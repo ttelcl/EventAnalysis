@@ -83,8 +83,11 @@ let usage targetCommand =
       cp "   \fg-N \fx\fx                  Remove the cap on the number of events (equivalent to \fg-n \fc2147483647\f0)"
       cp "   \fg-to \fc<rid>\f0            Enumerate events going back from record id \fc<rid>\f0 (default: last known RID)"
   if targetMatch "archive" then
+    cp "\foeventtool \fyarchive\f0 \fm...\f0"
+    cp "   Archive database operations"
     cp "\foeventtool \fyarchive\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-copy\f0|\fg-move\f0] [\fg-days \fc<n>\f0|\fg-n \fc<n>\f0]"
-    cp "   Copy or move the oldest data to a new archive database"
+    cp "   Copy or move the next batch of records from the primary database to the archive database"
+    cp "   Creates the archive database if not already done so"
     if detailed then
       cp "   \fg-job \fc<jobname>\f0       The name of the job (selecting the database to dump)"
       cp "   \fg-m \fc<machine>\f0         The machine whose events to inspect (default: current machine)"
