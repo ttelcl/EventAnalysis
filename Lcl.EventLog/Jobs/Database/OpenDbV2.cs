@@ -217,7 +217,8 @@ WHERE eid=@Eid AND ever=@Ever AND task=@TaskId AND prvid=@PrvId AND opid=@OpId",
     }
 
     /// <summary>
-    /// Query the EventHeaders table
+    /// Query the EventHeaders table. All results are buffered in memory.
+    /// Consider using <see cref="ChunkedEventHeaders"/> instead for large result sets.
     /// </summary>
     /// <param name="ridMin">Minimum Record ID</param>
     /// <param name="ridMax">Maximum Record ID</param>
@@ -311,6 +312,8 @@ LIMIT {limit.Value}";
 
     /// <summary>
     /// Query the joined EventHeaders + EventXml tables
+    /// For large queries consider using <see cref="ChunkedEvents"/>
+    /// instead
     /// </summary>
     /// <param name="ridMin">Minimum Record ID</param>
     /// <param name="ridMax">Maximum Record ID</param>
@@ -407,7 +410,8 @@ LIMIT {limit.Value}";
     }
 
     /// <summary>
-    /// Query the EventHeaders table, returning only the record IDs
+    /// Query the EventHeaders table, returning only the record IDs.
+    /// For large queries, consider using <see cref="ChunkedEventIds"/> instead.
     /// </summary>
     /// <param name="ridMin">Minimum Record ID</param>
     /// <param name="ridMax">Maximum Record ID</param>
@@ -497,6 +501,223 @@ LIMIT {limit.Value}";
         TMax = tMax,
         PrvId = prvid,
       });
+    }
+
+    /// <summary>
+    /// Wrap another query function to execute it in chunks instead of all at once.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The return type of the query
+    /// </typeparam>
+    /// <param name="query">
+    /// The query function to wrap; One of <see cref="QueryEventHeaders"/>,
+    /// <see cref="QueryEvents"/>, or <see cref="QueryEventIds"/> of this DB.
+    /// </param>
+    /// <param name="getRecordId">
+    /// A helper function to extract the record ID from the result type
+    /// </param>
+    /// <param name="chunkSize">
+    /// The chunk size (minimum 64)
+    /// </param>
+    /// <param name="reverse">
+    /// True to return results in reverse order (unlike the wrapped query functions,
+    /// this parameter is now required)
+    /// </param>
+    /// <param name="limit">
+    /// The total maximum number of records to return (null for no limit)
+    /// </param>
+    /// <param name="ridMin">
+    /// The minimum record ID to start or end with (null for no minimum)
+    /// </param>
+    /// <param name="ridMax">
+    /// The maximum record ID to start or end with (null for no maximum)
+    /// </param>
+    /// <param name="eid">
+    /// The exact event ID to match (null for 'any')
+    /// </param>
+    /// <param name="tMin">
+    /// The minimum event timestamp as epoch ticks (null for no minimum)
+    /// </param>
+    /// <param name="tMax">
+    /// The maximum event timestamp as epoch ticks (null for no maximum)
+    /// </param>
+    /// <param name="prvid">
+    /// The exact internal provider ID (null for 'any')
+    /// </param>
+    /// <param name="task">
+    /// The exact task id (null for 'any')
+    /// </param>
+    /// <param name="ever">
+    /// The exact event version (null for 'any')
+    /// </param>
+    /// <param name="opid">
+    /// The exact operation id (null for 'any')
+    /// </param>
+    /// <returns>
+    /// A sequence of query results (of the type determined by <paramref name="query"/>)
+    /// </returns>
+    public static IEnumerable<T> ChunkedQuery<T>(
+      Func<
+        long?, // ridMin
+        long?, // ridMax
+        int?, // eid
+        long?, // tMin
+        long?, // tMax
+        int?, // prvid
+        bool, // reverse
+        int?, // limit
+        int?, // task
+        int?, // ever
+        int?, // opid
+        IEnumerable<T>> query,
+      Func<T,long> getRecordId,
+      int chunkSize,
+      bool reverse,
+      int? limit = null,
+      long? ridMin = null,
+      long? ridMax = null,
+      int? eid = null,
+      long? tMin = null,
+      long? tMax = null,
+      int? prvid = null,
+      int? task = null,
+      int? ever = null,
+      int? opid = null)
+    {
+      if(chunkSize < 64)
+      {
+        throw new ArgumentException("Chunk size must be at least 64");
+      }
+      int limitRemaining = limit ?? Int32.MaxValue;
+      if(reverse)
+      {
+        while(limitRemaining > 0)
+        {
+          var chunkLimit = Math.Min(limitRemaining, chunkSize);
+          var chunk =
+            query(ridMin, ridMax, eid, tMin, tMax, prvid, true, chunkLimit, task, ever, opid)
+            .ToList();
+          limitRemaining -= chunk.Count;
+          if(chunk.Count == 0)
+          {
+            // we're done
+            break;
+          }
+          foreach(var item in chunk)
+          {
+            yield return item;
+          }
+          var newMax = getRecordId(chunk.Last()) - 1;
+          ridMax = newMax;
+          if((ridMin != null && newMax < ridMin) || newMax < 0)
+          {
+            // we're done
+            break;
+          }
+        }
+      }
+      else
+      {
+        while(limitRemaining > 0)
+        {
+          var chunkLimit = Math.Min(limitRemaining, chunkSize);
+          var chunk =
+            query(ridMin, ridMax, eid, tMin, tMax, prvid, false, chunkLimit, task, ever, opid)
+            .ToList();
+          limitRemaining -= chunk.Count;
+          if(chunk.Count == 0)
+          {
+            // we're done
+            break;
+          }
+          foreach(var item in chunk)
+          {
+            yield return item;
+          }
+          var newMin = getRecordId(chunk.Last()) + 1;
+          ridMin = newMin;
+          if(ridMax != null && newMin > ridMax)
+          {
+            // we're done
+            break;
+          }
+        }
+      }
+    }
+
+    /// <summary>
+    /// Like <see cref="QueryEventHeaders"/>, but processes the results in chunks
+    /// behind the scenes.
+    /// </summary>
+    public IEnumerable<EventHeaderRow> ChunkedEventHeaders(
+      int chunkSize,
+      bool reverse,
+      int? limit = null,
+      long? ridMin = null,
+      long? ridMax = null,
+      int? eid = null,
+      long? tMin = null,
+      long? tMax = null,
+      int? prvid = null,
+      int? task = null,
+      int? ever = null,
+      int? opid = null)
+    {
+      return ChunkedQuery(
+        QueryEventHeaders,
+        (EventHeaderRow ehr) => ehr.RecordId,
+        chunkSize, reverse, limit, ridMin, ridMax,
+        eid, tMin, tMax, prvid, task, ever, opid);
+    }
+
+    /// <summary>
+    /// Like <see cref="QueryEvents"/>, but processes the results in chunks
+    /// behind the scenes.
+    /// </summary>
+    public IEnumerable<EventViewRow> ChunkedEvents(
+      int chunkSize,
+      bool reverse,
+      int? limit = null,
+      long? ridMin = null,
+      long? ridMax = null,
+      int? eid = null,
+      long? tMin = null,
+      long? tMax = null,
+      int? prvid = null,
+      int? task = null,
+      int? ever = null,
+      int? opid = null)
+    {
+      return ChunkedQuery(
+        QueryEvents,
+        (EventViewRow evr) => evr.RecordId,
+        chunkSize, reverse, limit, ridMin, ridMax,
+        eid, tMin, tMax, prvid, task, ever, opid);
+    }
+
+    /// <summary>
+    /// Like <see cref="QueryEventIds"/>, but processes the results in chunks
+    /// behind the scenes.
+    /// </summary>
+    public IEnumerable<long> ChunkedEventIds(
+      int chunkSize,
+      bool reverse,
+      int? limit = null,
+      long? ridMin = null,
+      long? ridMax = null,
+      int? eid = null,
+      long? tMin = null,
+      long? tMax = null,
+      int? prvid = null,
+      int? task = null,
+      int? ever = null,
+      int? opid = null)
+    {
+      return ChunkedQuery(
+        QueryEventIds,
+        (long rid) => rid,
+        chunkSize, reverse, limit, ridMin, ridMax,
+        eid, tMin, tMax, prvid, task, ever, opid);
     }
 
     /// <summary>
