@@ -84,16 +84,17 @@ let usage targetCommand =
       cp "   \fg-to \fc<rid>\f0            Enumerate events going back from record id \fc<rid>\f0 (default: last known RID)"
   if targetMatch "archive" then
     cp "\foeventtool \fyarchive\f0 \fm...\f0"
-    cp "   Archive database operations"
-    cp "\foeventtool \fyarchive\f0 \fysync\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0]"
-    cp "   Ensure an archive DB exists and the metadata reflects that of the main DB"
-    cp "\foeventtool \fyarchive\f0 \fycopy\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-cap \fc<cap>\f0] [\fg-to \fc<yyyy-MM-dd>\f0]"
-    cp "   Copy data from the main database to the archive database"
+    cp "   Archive database operations \frWork In Progress\f0!"
     if detailed then
       cp "   \fg-job \fc<jobname>\f0       The name of the job (selecting the database)"
       cp "   \fg-m \fc<machine>\f0         The machine whose events to inspect (default: current machine)"
-      cp "   \fg-cap \fc<cap>\f0           The maximum number of records to copy"
-      cp "   \fg-to \fc<yyyy-MM-dd>\f0     Only copy records before this date. Default: a month start based on existing content"
+  if targetMatch "diag" then
+    cp "\foeventtool \fydiag\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-day\f0|\fg-week\f0|\fg-month\f0] [\fg-rid \fc<ridmin>\f0]"
+    cp "   Generate a CSV file summarizing DB content on a day-by-day or month-by-month base"
+    if detailed then
+      cp "   \fg-job \fc<jobname>\f0       The name of the job (selecting the database)"
+      cp "   \fg-m \fc<machine>\f0         The machine whose events to inspect (default: current machine)"
+      cp "   \fg-rid \fc<ridmin>\f0        The RID where to start scanning"
   if targetMatch "fix" then
     cp "\foeventtool \fyfix\f0 [\fg-job \fc<jobname>\f0|\fg-all\f0] [\fg-m \fc<machine>\f0]"
     cp "   Create missing database files for the job."

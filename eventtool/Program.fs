@@ -49,6 +49,9 @@ let rec run arglist =
     rest |> AppMetaDump.run
   | "archive" :: rest ->
     rest |> AppArchive.run
+  | "diagnose" :: rest
+  | "diag" :: rest ->
+    rest |> AppDiag.run
   | x :: _ ->
     cp $"\foUnknown command \fr{x}\f0."
     1
