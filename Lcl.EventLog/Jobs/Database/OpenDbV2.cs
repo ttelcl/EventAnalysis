@@ -227,6 +227,9 @@ WHERE eid=@Eid AND ever=@Ever AND task=@TaskId AND prvid=@PrvId AND opid=@OpId",
     /// <param name="prvid">The exact internal provider ID</param>
     /// <param name="reverse">Return results in reverse RID order when true.</param>
     /// <param name="limit">The maximum number of rows to return</param>
+    /// <param name="task">The exact task id (null for 'any')</param>
+    /// <param name="ever">The exact event version (null for 'any')</param>
+    /// <param name="opid">The exact operation id (null for 'any')</param>
     /// <returns>A sequence of EventHeaderRow objects</returns>
     public IEnumerable<EventHeaderRow> QueryEventHeaders(
       long? ridMin = null,
@@ -236,7 +239,10 @@ WHERE eid=@Eid AND ever=@Ever AND task=@TaskId AND prvid=@PrvId AND opid=@OpId",
       long? tMax = null,
       int? prvid = null,
       bool reverse = false,
-      int? limit = null)
+      int? limit = null,
+      int? task = null,
+      int? ever = null,
+      int? opid = null)
     {
       var q = @"
 SELECT rid, stamp, eid, ever, task, prvid, opid
@@ -265,6 +271,18 @@ FROM EventHeader";
       if(prvid != null)
       {
         conditions.Add("prvid = @PrvId");
+      }
+      if(task != null)
+      {
+        conditions.Add("task = @TaskId");
+      }
+      if(ever != null)
+      {
+        conditions.Add("ever = @EvVer");
+      }
+      if(opid != null)
+      {
+        conditions.Add("opid = @OpId");
       }
       if(conditions.Count > 0)
       {
@@ -360,7 +378,6 @@ INNER JOIN EventXml x on x.rid = h.rid";
       {
         conditions.Add("opid = @OpId");
       }
-
       if(conditions.Count > 0)
       {
         var condition = @"
@@ -399,6 +416,10 @@ LIMIT {limit.Value}";
     /// <param name="tMax">Maximum event timestamp as epoch ticks</param>
     /// <param name="prvid">The exact internal provider ID</param>
     /// <param name="reverse">Return results in reverse RID order when true.</param>
+    /// <param name="limit">The maximum number of rows to return</param>
+    /// <param name="task">The exact task id (null for 'any')</param>
+    /// <param name="ever">The exact event version (null for 'any')</param>
+    /// <param name="opid">The exact operation id (null for 'any')</param>
     /// <returns>A sequence of record IDs</returns>
     public IEnumerable<long> QueryEventIds(
       long? ridMin = null,
@@ -407,7 +428,11 @@ LIMIT {limit.Value}";
       long? tMin = null,
       long? tMax = null,
       int? prvid = null,
-      bool reverse = false)
+      bool reverse = false,
+      int? limit = null,
+      int? task = null,
+      int? ever = null,
+      int? opid = null)
     {
       var q = @"
 SELECT rid
@@ -437,6 +462,18 @@ FROM EventHeader";
       {
         conditions.Add("prvid = @PrvId");
       }
+      if(task != null)
+      {
+        conditions.Add("task = @TaskId");
+      }
+      if(ever != null)
+      {
+        conditions.Add("ever = @EvVer");
+      }
+      if(opid != null)
+      {
+        conditions.Add("opid = @OpId");
+      }
       if(conditions.Count > 0)
       {
         var condition = @"
@@ -446,6 +483,11 @@ WHERE " + String.Join(@"
       }
       q += @"
 ORDER BY rid " + (reverse ? "DESC" : "ASC");
+      if(limit != null && limit > 0 && limit < Int32.MaxValue)
+      {
+        q += $@"
+LIMIT {limit.Value}";
+      }
 
       return Connection.Query<long>(q, new {
         RidMin = ridMin,
@@ -562,6 +604,24 @@ WHERE h.rid=@RecordId",
     public EventViewRow? FindEvent(IEventKey iek)
     {
       return FindEvent(iek.RecordId);
+    }
+
+    /// <summary>
+    /// Return the first event header record in the database
+    /// (or null if there are none)
+    /// </summary>
+    public EventHeaderRow? FirstEventHeader()
+    {
+      return QueryEventHeaders(reverse: false, limit: 1).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Return the last event header record in the database
+    /// (or null if there are none)
+    /// </summary>
+    public EventHeaderRow? LastEventHeader()
+    {
+      return QueryEventHeaders(reverse: true, limit: 1).FirstOrDefault();
     }
 
     /// <summary>
