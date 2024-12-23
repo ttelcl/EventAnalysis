@@ -33,7 +33,6 @@ namespace Lcl.EventLog.Jobs
       JobFolder = Path.Combine(Zone.RootFolder, Configuration.Name);
       RawDbFileV1 = Path.Combine(JobFolder, $"{Configuration.Name}.raw-events.sqlite3");
       RawDbFileV2 = Path.Combine(JobFolder, $"{Configuration.Name}.raw.sqlite3");
-      RawDbArchiveFile = Path.Combine(JobFolder, $"{Configuration.Name}.archive.raw.sqlite3");
     }
 
     /// <summary>
@@ -62,11 +61,6 @@ namespace Lcl.EventLog.Jobs
     public string RawDbFileV2 { get; }
 
     /// <summary>
-    /// The filename for the raw event import DB archive
-    /// </summary>
-    public string RawDbArchiveFile { get; }
-
-    /// <summary>
     /// True if the V1 database file exists
     /// </summary>
     public bool HasDbV1 => File.Exists(RawDbFileV1);
@@ -75,11 +69,6 @@ namespace Lcl.EventLog.Jobs
     /// True if the V2 database file exists
     /// </summary>
     public bool HasDbV2 => File.Exists(RawDbFileV2);
-
-    /// <summary>
-    /// True if a (V2) archive database file currently exists
-    /// </summary>
-    public bool HasArchive => File.Exists(RawDbArchiveFile);
 
     /// <summary>
     /// Insert missing records into the database from the event log, taking into
@@ -444,47 +433,6 @@ namespace Lcl.EventLog.Jobs
     }
 
     /// <summary>
-    /// Open the archive DB.
-    /// If writable, the DB is created if it did not exist yet.
-    /// If writable, the archive DB is synchronized with the main DB,
-    /// copying all non-event content.
-    /// </summary>
-    /// <param name="writable"></param>
-    /// <returns></returns>
-    public RawEventDbV2 OpenArchiveDb(bool writable)
-    {
-      if(writable && Zone.ReadOnly)
-      {
-        throw new InvalidOperationException(
-          "Cannot open an archive DB in a read-only zone");
-      }
-      if(!HasDbV2)
-      {
-        throw new InvalidOperationException(
-          "Cannot open an archive DB when the main V2 DB does not exist");
-      }
-      if(!HasArchive)
-      {
-        if(writable)
-        {
-          InitArchive();
-        }
-        else
-        {
-          throw new FileNotFoundException(
-            $"Cannot open a non-existing archive database as read-only",
-            RawDbArchiveFile);
-        }
-      }
-      var redb = new RawEventDbV2(RawDbArchiveFile, writable, false);
-      if(writable)
-      {
-        SyncArchiveMetadata(redb);
-      }
-      return redb;
-    }
-
-    /// <summary>
     /// If the db does not exist yet, create it as an empty db.
     /// Currently creates BOTH the new and legacy versions.
     /// </summary>
@@ -526,27 +474,6 @@ namespace Lcl.EventLog.Jobs
       }
     }
 
-    private void InitArchive()
-    {
-      if(!HasArchive)
-      {
-        if(Zone.ReadOnly)
-        {
-          throw new InvalidOperationException(
-            "Cannot initialize DB: the data zone is read-only");
-        }
-        else
-        {
-          InitFolder();
-          var redb = new RawEventDbV2(RawDbArchiveFile, true, true);
-          using(var db = redb.Open(true, true))
-          {
-            db.DbInit();
-          }
-        }
-      }
-    }
-
     /// <summary>
     /// Upgrade the V2 DB, adding some new DB objects if missing
     /// </summary>
@@ -567,12 +494,6 @@ namespace Lcl.EventLog.Jobs
       {
         return db2.DbInit(); // this now includes the upgrade
       }
-    }
-
-    private void SyncArchiveMetadata(
-      RawEventDbV2 archiveDb)
-    {
-      throw new NotImplementedException();
     }
 
     private void InitFolder()
