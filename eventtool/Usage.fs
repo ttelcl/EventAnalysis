@@ -85,6 +85,8 @@ let usage targetCommand =
   if targetMatch "archive" then
     cp "\foeventtool \fyarchive\f0 \fm...\f0"
     cp "   Archive database operations \frWork In Progress\f0!"
+    cp "\foeventtool \fyarchive list\f0 fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0]"
+    cp "   List archive files for the job existing in the job's database folder"
     if detailed then
       cp "   \fg-job \fc<jobname>\f0       The name of the job (selecting the database)"
       cp "   \fg-m \fc<machine>\f0         The machine whose events to inspect (default: current machine)"
