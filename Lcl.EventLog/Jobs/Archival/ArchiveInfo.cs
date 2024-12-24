@@ -23,6 +23,7 @@ public class ArchiveInfo
   /// Create a new ArchiveInfo
   /// </summary>
   public ArchiveInfo(
+    string machineName,
     string jobName,
     int year,
     int month,
@@ -30,6 +31,7 @@ public class ArchiveInfo
     long? ridMax,
     bool compressed = true)
   {
+    MachineName = String.IsNullOrEmpty(machineName) ? Environment.MachineName : machineName;
     if(!EventJobConfig.IsValidJobName(jobName))
     {
       throw new ArgumentException(
@@ -71,6 +73,11 @@ public class ArchiveInfo
     RidMax = ridMax;
     Compressed = compressed;
   }
+
+  /// <summary>
+  /// The name of the computer providing the events archived in this file
+  /// </summary>
+  public string MachineName { get; }
 
   /// <summary>
   /// The name of the associated job (implying both the database and the log channel)
@@ -120,7 +127,7 @@ public class ArchiveInfo
   public string GetUnsealedName()
   {
     var suffix = Compressed ? ".gz" : "";
-    return $"archive.{JobName}.{MonthTag}.-.evarc" + suffix;
+    return $"{MachineName}.{JobName}.archive.{MonthTag}.-.evarc" + suffix;
   }
 
   /// <summary>
@@ -135,7 +142,7 @@ public class ArchiveInfo
         "Expecting a sealed archive");
     }
     var suffix = Compressed ? ".gz" : "";
-    return $"archive.{JobName}.{MonthTag}.{RidMin.Value:D6}-{RidMax.Value:D6}.evarc" + suffix;
+    return $"{MachineName}.{JobName}.archive.{MonthTag}.{RidMin.Value:D6}-{RidMax.Value:D6}.evarc" + suffix;
   }
 
   /// <summary>
@@ -175,33 +182,34 @@ public class ArchiveInfo
   public static ArchiveInfo FromFileName(string fileName)
   {
     fileName = Path.GetFileName(fileName);
-    var compressed = fileName.EndsWith(".gz");
+    var compressed = fileName.EndsWith(".gz", StringComparison.InvariantCultureIgnoreCase);
     if(compressed)
     {
       fileName = fileName.Substring(0, fileName.Length-3);
     }
-    if(!fileName.StartsWith("archive."))
+    var parts = fileName.Split('.');
+    if(parts.Length != 6)
+    {
+      throw new ArgumentException(
+        "Expecting file name to have 6 parts (ignoring the optional '.gz' at the end)",
+        nameof(fileName));
+    }
+    if(!parts[2].Equals("archive", StringComparison.InvariantCultureIgnoreCase))
     {
       throw new ArgumentException(
         "Expecting file name to start with 'archive'",
         nameof(fileName));
     }
-    if(!fileName.EndsWith(".evarc"))
+    if(!parts[5].Equals(".evarc", StringComparison.InvariantCultureIgnoreCase))
     {
       throw new ArgumentException(
         "Expecting file name to end with '.evarc' or '.evarc.gz'",
         nameof(fileName));
     }
-    var parts = fileName.Split('.');
-    if(parts.Length != 5)
-    {
-      throw new ArgumentException(
-        "Expecting file name to have 5 parts (ignoring the optional '.gz' at the end)",
-        nameof(fileName));
-    }
+    var machineName = parts[0];
     var jobName = parts[1];
-    var monthTag = parts[2];
-    var ridParts = parts[3].Split('-');
+    var monthTag = parts[3];
+    var ridParts = parts[4].Split('-');
     if(ridParts.Length != 2)
     {
       throw new ArgumentException(
@@ -217,6 +225,7 @@ public class ArchiveInfo
         nameof(fileName));
     }
     return new ArchiveInfo(
+      machineName,
       jobName,
       Int32.Parse(monthTag[..4]),
       Int32.Parse(monthTag[5..7]),
@@ -236,26 +245,31 @@ public class ArchiveInfo
   /// <param name="jobName">
   /// The job name to match.
   /// </param>
+  /// <param name="machineName">
+  /// The machine name (defaults to the local machine name).
+  /// </param>
   /// <returns></returns>
-  public static IEnumerable<ArchiveInfo> FindArchives(string folderName, string jobName)
+  public static IEnumerable<ArchiveInfo> FindArchives(
+    string folderName, string jobName, string? machineName = null)
   {
+    machineName ??= Environment.MachineName;
     if(!EventJobConfig.IsValidJobName(jobName))
     {
       throw new ArgumentException(
         $"Invalid job name: {jobName}",
         nameof(jobName));
     }
-    var prefix = $"archive.{jobName}.";
+    var prefix = $"{machineName}.{jobName}.archive.";
     var folder = new DirectoryInfo(folderName);
     var candidateFiles1 =
       folder
       .GetFiles(prefix + "*.evarc")
-      .Where(f => f.Name.Split('.').Length == 5)
+      .Where(f => f.Name.Split('.').Length == 6)
       .ToList();
     var candidateFiles2 =
       folder
       .GetFiles(prefix + "*.evarc.gz")
-      .Where(f => f.Name.Split('.').Length == 6)
+      .Where(f => f.Name.Split('.').Length == 7)
       .ToList();
     var files = new List<ArchiveInfo>();
     foreach(var file in candidateFiles1.Concat(candidateFiles2))

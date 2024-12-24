@@ -507,7 +507,7 @@ namespace Lcl.EventLog.Jobs
     public IEnumerable<ArchiveInfo> EnumArchives(string? folder = null)
     {
       folder = String.IsNullOrEmpty(folder) ? JobFolder : folder;
-      return ArchiveInfo.FindArchives(folder, Configuration.Name);
+      return ArchiveInfo.FindArchives(folder, Configuration.Name, Zone.Machine);
     }
 
     private void InitFolder()
