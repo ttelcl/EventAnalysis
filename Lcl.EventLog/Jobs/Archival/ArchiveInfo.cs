@@ -116,17 +116,18 @@ public class ArchiveInfo
   public bool IsSealed { get => RidMin.HasValue && RidMax.HasValue; }
 
   /// <summary>
-  /// Whether or not the archive file is compressed. Normally it is,
-  /// but for debugging purposes, it may be useful to disable compression.
+  /// Default state of the archive file: compressed or uncompressed.
+  /// This just provides a default for the file name if not explicitly
+  /// passed to <see cref="GetUnsealedName"/> or <see cref="GetSealedName"/>.
   /// </summary>
-  public bool Compressed { get; }
+  public bool Compressed { get; set; }
 
   /// <summary>
   /// Get the name of the archive file if it were not sealed (even if it is).
   /// </summary>
-  public string GetUnsealedName()
+  public string GetUnsealedName(bool? compressed = null)
   {
-    var suffix = Compressed ? ".gz" : "";
+    var suffix = (compressed ?? Compressed) ? ".gz" : "";
     return $"{MachineName}.{JobName}.archive.{MonthTag}.-.evarc" + suffix;
   }
 
@@ -134,14 +135,14 @@ public class ArchiveInfo
   /// Get the name of the sealed archive file. Throws an exception if the
   /// archive is not sealed.
   /// </summary>
-  public string GetSealedName()
+  public string GetSealedName(bool? compressed = null)
   {
     if(!RidMin.HasValue || !RidMax.HasValue)
     {
       throw new InvalidOperationException(
         "Expecting a sealed archive");
     }
-    var suffix = Compressed ? ".gz" : "";
+    var suffix = (compressed ?? Compressed) ? ".gz" : "";
     return $"{MachineName}.{JobName}.archive.{MonthTag}.{RidMin.Value:D6}-{RidMax.Value:D6}.evarc" + suffix;
   }
 

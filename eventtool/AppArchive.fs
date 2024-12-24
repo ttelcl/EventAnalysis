@@ -1,10 +1,12 @@
 ﻿module AppArchive
 
 open System
+open System.IO
 
 open Newtonsoft.Json
 
 open Lcl.EventLog.Jobs
+open Lcl.EventLog.Jobs.Archival
 open Lcl.EventLog.Jobs.Database
 open Lcl.EventLog.Jobs.Database.Skeleton
 open Lcl.EventLog.Utilities
@@ -89,10 +91,114 @@ let private runList args =
     Usage.usage "archive"
     1
 
+type private BuildOptions = {
+  JobName: string
+  MachineName: string
+  Dry: bool
+  RidStart: int64 option
+}
+
+let private runBuildInner o =
+  let ezc = new EventZoneConfig(o.MachineName)
+  let edz = new EventDataZone(true, ezc.Machine)
+  if edz.Exists |> not then
+    cp $"\frNo data for machine \f0'\fc{ezc.Machine}\f0'"
+    1
+  else
+    let job = edz.TryOpenJob(o.JobName)
+    if job = null then
+      cp $"\frNo job or channel \f0'\fg{o.JobName}\f0' \frknown for machine \f0'\fc{o.MachineName}\f0'"
+      1
+    else
+      let ridStart =
+        match o.RidStart with
+        | Some(rid) ->
+          rid
+        | None ->
+          let archives =
+            job.EnumArchives()
+            |> Seq.toArray
+          // If only Seq.tryMax existed :(
+          let maxRids =
+            archives
+            |> Seq.choose (fun ai -> ai.RidMax |> Option.ofNullable)
+            |> Seq.toArray
+          if maxRids.Length = 0 then
+            1L
+          else
+            let maxRid = maxRids |> Seq.max
+            maxRid + 1L
+      let archiveBuilder = new ArchiveBuilder(job, ridStart)
+      let errorMessage = archiveBuilder.Validate()
+      if errorMessage |> String.IsNullOrEmpty |> not then
+        cp $"\foRequest validation failed: \fy{errorMessage}\f0."
+        1
+      else
+        let fileName = archiveBuilder.GetArchiveFile(true)
+        let shortName = fileName |> Path.GetFileName
+        let eventCount = archiveBuilder.RidEnd.Value - archiveBuilder.RidStart
+        cp $"Archive file: \fg{shortName}\f0. \fb{eventCount}\f0 events."
+        if o.Dry |> not then
+          cp "\frNot Implemented!\f0 \fg-dry\fo is currently mandatory\f0."
+          1
+        else
+          cp "\fo-dry\f0 was specified. Not running actual archiving"
+          0
+
+let private runBuild args =
+  let rec parsemore o args =
+    match args with
+    | "-v" :: rest ->
+      verbose <- true
+      rest |> parsemore o
+    | "-h" :: _ ->
+      None
+    | "-dry" :: rest ->
+      rest |> parsemore {o with Dry = true}
+    | "-rid" :: ridTxt :: rest ->
+      let ok, rid = ridTxt |> Int64.TryParse
+      if ok && rid >= 1L then
+        rest |> parsemore {o with RidStart = rid |> Some}
+      else
+        cp "\foExpecting a positive number after \fg-rid\f0."
+        None
+    | "-job" :: job :: rest ->
+      if job |> EventJobConfig.IsValidJobName |> not then
+        cp $"'\fg{job}\f0' \fois not a valid job name\f0."
+        None
+      else
+        rest |> parsemore {o with JobName = job}
+    | "-m" :: mnm :: rest
+    | "-machine" :: mnm :: rest ->
+      rest |> parsemore {o with MachineName = mnm}
+    | [] ->
+      if o.JobName |> String.IsNullOrEmpty then
+        cp "\foNo job name provided\f0."
+        None
+      else
+        o |> Some
+    | x :: _ ->
+      cp $"\foUnrecognized argument \f0'\fy{x}\f0'"
+      None
+  let oo = args |> parsemore {
+    JobName = null
+    MachineName = Environment.MachineName
+    Dry = false
+    RidStart = None
+  }
+  match oo with
+  | Some(o) ->
+    o |> runBuildInner
+  | None ->
+    Usage.usage "archive"
+    1
+
 let run args =
   match args with
   | "list" :: rest ->
     rest |> runList
+  | "build" :: rest ->
+    rest |> runBuild
   | "-h" :: _ ->
     Usage.usage "archive"
     1
