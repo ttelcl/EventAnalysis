@@ -63,7 +63,8 @@ public class ChannelDto
   /// it from the job's inner database.
   /// </summary>
   public static ChannelDto FromJob(
-    EventJob job)
+    EventJob job,
+    bool shallow)
   {
     if(!job.HasDbV2)
     {
@@ -74,27 +75,31 @@ public class ChannelDto
         new List<ProviderDto>());
     }
     using var odb = job.OpenInnerDatabase2(false);
-    var opScaffolds =
-      odb.AllOperationInfoRows()
-      .Select(opRow => new OperationDto.Scaffold(opRow))
-      .ToDictionary(scaffold => scaffold.Row.Key);
-    var taskScaffolds =
-      odb.AllTaskInfoRows()
-      .Select(row => new TaskDto.Scaffold(row))
-      .ToDictionary(scaffold => scaffold.Row.Key);
     var providerScaffolds =
       odb.AllProviderInfoRows()
       .Select(row => new ProviderDto.Scaffold(row))
       .ToDictionary(scaffold => scaffold.Row.ProviderId);
-    foreach(var opScaffold in opScaffolds.Values)
+
+    if(!shallow)
     {
-      var taskScaffold = taskScaffolds[opScaffold.Row.TaskKey];
-      taskScaffold.Dto.Operations.Add(opScaffold.Dto);
-    }
-    foreach(var taskScaffold in taskScaffolds.Values)
-    {
-      var providerScaffold = providerScaffolds[taskScaffold.Row.ProviderId];
-      providerScaffold.Dto.Tasks.Add(taskScaffold.Dto);
+      var taskScaffolds =
+      odb.AllTaskInfoRows()
+      .Select(row => new TaskDto.Scaffold(row))
+      .ToDictionary(scaffold => scaffold.Row.Key);
+      var opScaffolds =
+        odb.AllOperationInfoRows()
+        .Select(opRow => new OperationDto.Scaffold(opRow))
+        .ToDictionary(scaffold => scaffold.Row.Key);
+      foreach(var opScaffold in opScaffolds.Values)
+      {
+        var taskScaffold = taskScaffolds[opScaffold.Row.TaskKey];
+        taskScaffold.Dto.Operations.Add(opScaffold.Dto);
+      }
+      foreach(var taskScaffold in taskScaffolds.Values)
+      {
+        var providerScaffold = providerScaffolds[taskScaffold.Row.ProviderId];
+        providerScaffold.Dto.Tasks.Add(taskScaffold.Dto);
+      }
     }
     return new ChannelDto(
       job.Configuration.Name,

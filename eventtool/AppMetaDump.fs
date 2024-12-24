@@ -16,6 +16,7 @@ open CommonTools
 type private Options = {
   JobName: string
   MachineName: string
+  Shallow: bool
 }
 
 let private runApp o =
@@ -33,7 +34,7 @@ let private runApp o =
       if job.HasDbV2 |> not then
         cp $"\foWarning\f0: No data recorded yet for job \f0'\fg{o.JobName}\f0'"
       let onm = $"{o.MachineName}.{o.JobName}.metadump.json"
-      let skeleton = ChannelDto.FromJob(job)
+      let skeleton = ChannelDto.FromJob(job, o.Shallow)
       let json = JsonConvert.SerializeObject(skeleton, Formatting.Indented)
       cp $"Saving output to \fy{onm}\f0."
       do
@@ -55,6 +56,10 @@ let run args =
     | "-machine" :: mnm :: rest
     | "-m" :: mnm :: rest ->
       rest |> parsemore {o with MachineName = mnm}
+    | "-shallow" :: rest ->
+      rest |> parsemore {o with Shallow = true}
+    | "-deep" :: rest ->
+      rest |> parsemore {o with Shallow = false}
     | [] ->
       if o.JobName |> String.IsNullOrEmpty then
         cp "\foNo \fg-job\fo name specified\f0"
@@ -67,6 +72,7 @@ let run args =
   let oo = args |> parsemore {
     JobName = null
     MachineName = Environment.MachineName
+    Shallow = false
   }
   match oo with
   | Some(o) ->

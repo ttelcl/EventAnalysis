@@ -66,11 +66,13 @@ let usage targetCommand =
       cp "   \fg-db1 \fx   \f0             Update the legacy (V1) database"
       cp "   \fg-db2 \fx   \f0             Update the new (V2) database"
   if targetMatch "metadump" then
-    cp "\foeventtool \fymetadump\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0]"
+    cp "\foeventtool \fymetadump\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-shallow\f0|\fg-deep\f0]"
     cp "   Dump the current metadata for the job in JSON form: all DB content excluding actual events"
     if detailed then
       cp "   \fg-job \fc<jobname>\f0       The name of the job (selecting the database to dump)"
       cp "   \fg-m \fc<machine>\f0         The machine whose events to inspect (default: current machine)"
+      cp "   \fg-deep\f0                   (default) Include providers, tasks and operations"
+      cp "   \fg-shallow\f0                Include only providers, not tasks nor operations"
   if targetMatch "dump" then
     cp "\foeventtool \fydump\f0 [\fg-list\f0] \fg-job \fc<jobname>\f0 \fg-e \fc<event>\f0 [\fg-p \fc<provider>\f0] [\fg-n \fc<n>\f0|\fg-N\f0] [\fg-to \fc<rid>\f0]"
     cp "   Dump data for matching events to a CSV file. Events are processed from newest to oldest."

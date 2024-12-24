@@ -27,12 +27,12 @@ public class ProviderDto
     int id,
     string provider,
     string? guid,
-    IEnumerable<TaskDto> tasks)
+    IEnumerable<TaskDto>? tasks = null)
   {
     ProviderId = id;
     ProviderName = provider;
     ProviderGuid = guid;
-    Tasks = tasks.ToList();
+    Tasks = tasks==null ? new List<TaskDto>() : tasks.ToList();
   }
 
   /// <summary>
@@ -60,38 +60,53 @@ public class ProviderDto
   public List<TaskDto> Tasks { get; }
 
   /// <summary>
+  /// Used by the JSON serializer to determine if the Tasks collection should be serialized
+  /// </summary>
+  public bool ShouldSerializeTasks()
+  {
+    return Tasks.Count > 0;
+  }
+
+  /// <summary>
   /// Build the full metadata model from the database
   /// </summary>
   /// <param name="odb">
   /// The opened database
   /// </param>
+  /// <param name="shallow">
+  /// When true, only the provider info is loaded (no tasks or operations)
+  /// </param>
   /// <returns>
   /// The list of provider DTOs (which include the tasks, which in turn include the operations)
   /// </returns>
   public static List<ProviderDto> FromDb(
-    OpenDbV2 odb)
+    OpenDbV2 odb,
+    bool shallow)
   {
-    var opScaffolds =
-      odb.AllOperationInfoRows()
-      .Select(opRow => new OperationDto.Scaffold(opRow))
-      .ToDictionary(scaffold => scaffold.Row.Key);
-    var taskScaffolds =
-      odb.AllTaskInfoRows()
-      .Select(row => new TaskDto.Scaffold(row))
-      .ToDictionary(scaffold => scaffold.Row.Key);
     var providerScaffolds =
       odb.AllProviderInfoRows()
       .Select(row => new ProviderDto.Scaffold(row))
       .ToDictionary(scaffold => scaffold.Row.ProviderId);
-    foreach(var opScaffold in opScaffolds.Values)
+    if(!shallow)
     {
-      var taskScaffold = taskScaffolds[opScaffold.Row.TaskKey];
-      taskScaffold.Dto.Operations.Add(opScaffold.Dto);
-    }
-    foreach(var taskScaffold in taskScaffolds.Values)
-    {
-      var providerScaffold = providerScaffolds[taskScaffold.Row.ProviderId];
-      providerScaffold.Dto.Tasks.Add(taskScaffold.Dto);
+      var taskScaffolds =
+        odb.AllTaskInfoRows()
+        .Select(row => new TaskDto.Scaffold(row))
+        .ToDictionary(scaffold => scaffold.Row.Key);
+      var opScaffolds =
+        odb.AllOperationInfoRows()
+        .Select(opRow => new OperationDto.Scaffold(opRow))
+        .ToDictionary(scaffold => scaffold.Row.Key);
+      foreach(var opScaffold in opScaffolds.Values)
+      {
+        var taskScaffold = taskScaffolds[opScaffold.Row.TaskKey];
+        taskScaffold.Dto.Operations.Add(opScaffold.Dto);
+      }
+      foreach(var taskScaffold in taskScaffolds.Values)
+      {
+        var providerScaffold = providerScaffolds[taskScaffold.Row.ProviderId];
+        providerScaffold.Dto.Tasks.Add(taskScaffold.Dto);
+      }
     }
 
     return providerScaffolds.Values.Select(scaffold => scaffold.Dto).ToList();
