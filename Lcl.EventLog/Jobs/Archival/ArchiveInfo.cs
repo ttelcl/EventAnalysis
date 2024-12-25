@@ -55,6 +55,8 @@ public class ArchiveInfo
         "Month must be in the range 01-12");
     }
     Month = month;
+    UtcStart = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+    UtcAfter = UtcStart.AddMonths(1);
     if(ridMin.HasValue && ridMin < 1)
     {
       ridMin = null;
@@ -93,6 +95,16 @@ public class ArchiveInfo
   /// The month for which the archive contains data (in year <see cref="Year"/>)
   /// </summary>
   public int Month { get; }
+
+  /// <summary>
+  /// The first moment of the month for which the archive contains data
+  /// </summary>
+  public DateTime UtcStart { get; }
+
+  /// <summary>
+  /// The first moment after the month for which the archive contains data
+  /// </summary>
+  public DateTime UtcAfter { get; }
 
   /// <summary>
   /// A string combining <see cref="Year"/> and <see cref="Month"/>

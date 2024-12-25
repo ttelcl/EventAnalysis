@@ -570,7 +570,7 @@ LIMIT {limit.Value}";
         int?, // ever
         int?, // opid
         IEnumerable<T>> query,
-      Func<T,long> getRecordId,
+      Func<T, long> getRecordId,
       int chunkSize,
       bool reverse,
       int? limit = null,
@@ -998,7 +998,7 @@ VALUES (@Rid, @Stamp, @Eid, @Ever, @Task, @PrvId, @OpId)",
           Task = task,
           PrvId = prvid,
           OpId = opid
-      });
+        });
     }
 
     internal int InsertEventXml(long rid, string xml)
@@ -1035,6 +1035,48 @@ VALUES (@Rid, @Xml)"
         ehr.ProviderId, ehr.OperationId, xml);
     }
 
+    /// <summary>
+    /// Delete all event records with RIDs starting from <paramref name="ridFrom"/>
+    /// up to but not including <paramref name="ridBefore"/>.
+    /// </summary>
+    /// <param name="ridFrom">
+    /// The minimum RID to delete (inclusive)
+    /// </param>
+    /// <param name="ridBefore">
+    /// The maximum RID to delete (exclusive)
+    /// </param>
+    /// <returns>
+    /// The number of records deleted from the EventHeader and EventXml tables
+    /// (ideally those are the same, but in case of conflict the larger is returned)
+    /// </returns>
+    public int DeleteEvents(long ridFrom, long ridBefore)
+    {
+      if(!CanWrite)
+      {
+        throw new InvalidOperationException(
+          "Cannot delete records. The database connection is read-only.");
+      }
+      using var trx = Connection.BeginTransaction();
+      var deleted1 = Connection.Execute(@"
+DELETE FROM EventHeader
+WHERE rid >= @RidFrom AND rid < @RidBefore;
+"
+      , new {
+        RidFrom = ridFrom,
+        RidBefore = ridBefore,
+      });
+      var deleted2 = Connection.Execute(@"
+DELETE FROM EventXml
+WHERE rid >= @RidFrom AND rid < @RidBefore;
+"
+      , new {
+        RidFrom = ridFrom,
+        RidBefore = ridBefore,
+      });
+      trx.Commit();
+      return Math.Max(deleted1, deleted2);
+    }
+
     private bool InitCompositeView()
     {
       var viewNames = DbViews().ToList();
@@ -1053,7 +1095,7 @@ CREATE VIEW Composite AS
         return true;
       }
     }
-    
+
     private bool InitTables()
     {
       if(!CanWrite || !CanCreate)

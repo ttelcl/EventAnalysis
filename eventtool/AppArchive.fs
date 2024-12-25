@@ -1,6 +1,7 @@
 ﻿module AppArchive
 
 open System
+open System.Globalization
 open System.IO
 
 open Newtonsoft.Json
@@ -213,12 +214,145 @@ let private runBuild args =
     Usage.usage "archive"
     1
 
+type private PurgeOptions = {
+  Before: DateTime option
+  JobName: string
+  MachineName: string
+  Dry: bool
+  Cap: int
+}
+
+let private runPurgeInner o =
+  let before = o.Before.Value
+  let ezc = new EventZoneConfig(o.MachineName)
+  let edz = new EventDataZone(o.Dry, ezc.Machine)
+  if edz.Exists |> not then
+    cp $"\frNo data for machine \f0'\fc{ezc.Machine}\f0'"
+    1
+  else
+    let job = edz.TryOpenJob(o.JobName)
+    if job = null then
+      cp $"\frNo job or channel \f0'\fg{o.JobName}\f0' \frknown for machine \f0'\fc{o.MachineName}\f0'"
+      1
+    else
+      let ridMin = job.MinRecordId2()
+      let archives =
+        job.EnumArchives()
+        |> Seq.where (fun ai ->
+            ai.IsSealed &&
+            ai.Compressed &&
+            ai.UtcStart <= before &&
+            ai.RidMin.Value >= ridMin)
+        |> Seq.truncate o.Cap
+        |> Seq.toArray
+      if archives.Length = 0 then
+        cp $"\foNo (compressed) archive files to purge found for job \f0'\fg{o.JobName}\f0'"
+        1
+      else
+        let dryText = if o.Dry then " \f0(\fyDry run\f0)" else ""
+        cp $"Processing \fb{archives.Length}\f0 matching archive files\f0{dryText}"
+        if archives.Length = o.Cap then
+          cp $"(\fycapped at \fb{o.Cap}\f0)"
+        use odb = job.OpenInnerDatabase2(o.Dry |> not)
+        let mutable total = 0
+        let tAfter = TimeUtil.TicksSinceEpoch(before)
+        for archive in archives do
+          let ridStart = archive.RidMin.Value
+          let ridBefore = // the EXCLUSIVE end
+            if archive.UtcAfter > before then
+              let stopRecord =
+                odb.QueryEventHeaders(archive.RidMin, archive.RidMax, tMin = tAfter, limit=1)
+                |> Seq.tryHead
+              // if none found: all existing records in the archive are available for deletion
+              match stopRecord with
+              | None ->
+                archive.RidMax.Value + 1L
+              | Some(r) ->
+                r.RecordId
+            else // no need to do an expensive search
+              archive.RidMax.Value + 1L
+          let fnm = archive.GetSealedName() |> Path.GetFileName
+          cp $"Processing \fg{fnm}\f0: [\fb{ridStart:D8}\f0, \fb{ridBefore:D8}\f0>{dryText}"
+          if o.Dry |> not then
+            cp "(\frNYI\f0)"
+          ()
+        0
+
+let private runPurge args =
+  let rec parsemore o args =
+    match args with
+    | "-v" :: rest ->
+      verbose <- true
+      rest |> parsemore o
+    | "-h" :: _ ->
+      None
+    | "-before" :: txt :: rest ->
+      let maxBefore = DateTime.UtcNow.AddMonths(-3).Date
+      let ok, before =
+        DateTime.TryParseExact(
+          txt, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+          DateTimeStyles.AssumeUniversal ||| DateTimeStyles.AdjustToUniversal)
+      if ok then
+        if before > maxBefore then
+          cp "\foExpecting a \fg-before\f0 date at least 3 months old"
+          None
+        else
+          rest |> parsemore {o with Before = before |> Some}
+      else
+        cp $"\foExpecting a date in \fcyyyy-MM-dd\fo format but got \fC{txt}\f0."
+        None
+    | "-dry" :: rest ->
+      rest |> parsemore {o with Dry = true}
+    | "-cap" :: captxt :: rest ->
+      let ok, cap = captxt |> Int32.TryParse
+      if ok && cap > 0 then
+        rest |> parsemore {o with Cap = cap}
+      else
+        cp $"\foExpacting a positive integer as argument to \fG-cap\f0."
+        None
+    | "-job" :: job :: rest ->
+      if job |> EventJobConfig.IsValidJobName |> not then
+        cp $"'\fg{job}\f0' \fois not a valid job name\f0."
+        None
+      else
+        rest |> parsemore {o with JobName = job}
+    | "-m" :: mnm :: rest
+    | "-machine" :: mnm :: rest ->
+      rest |> parsemore {o with MachineName = mnm}
+    | [] ->
+      if o.JobName |> String.IsNullOrEmpty then
+        cp "\foNo job name provided\f0."
+        None
+      elif o.Before.IsNone then
+        cp "\foNo \fG-before\fo date provided\f0."
+        None
+      else
+        o |> Some
+    | x :: _ ->
+      cp $"\foUnrecognized argument \f0'\fy{x}\f0'"
+      None
+  let oo = args |> parsemore {
+    Before = None
+    JobName = null
+    MachineName = Environment.MachineName
+    Dry = false
+    Cap = 12
+  }
+  match oo with
+  | None ->
+    Usage.usage "archive"
+    1
+  | Some(o) ->
+    o |> runPurgeInner
+
 let run args =
   match args with
   | "list" :: rest ->
     rest |> runList
   | "build" :: rest ->
     rest |> runBuild
+  | "purge" :: rest ->
+    rest |> runPurge
   | "-h" :: _ ->
     Usage.usage "archive"
     1
