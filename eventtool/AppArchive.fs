@@ -246,7 +246,8 @@ let private runPurgeInner o =
         |> Seq.truncate o.Cap
         |> Seq.toArray
       if archives.Length = 0 then
-        cp $"\foNo (compressed) archive files to purge found for job \f0'\fg{o.JobName}\f0'"
+        let beforeText = before.ToString("yyyy-MM-dd")
+        cp $"\foNo (compressed) archive files to purge found for job \f0'\fg{o.JobName}\f0' (before {beforeText})"
         1
       else
         let dryText = if o.Dry then " \f0(\fyDry run\f0)" else ""
@@ -272,10 +273,13 @@ let private runPurgeInner o =
             else // no need to do an expensive search
               archive.RidMax.Value + 1L
           let fnm = archive.GetSealedName() |> Path.GetFileName
-          cp $"Processing \fg{fnm}\f0: [\fb{ridStart:D8}\f0, \fb{ridBefore:D8}\f0>{dryText}"
-          if o.Dry |> not then
-            cp "(\frNYI\f0)"
-          ()
+          if ridStart < ridBefore then
+            cp $"Processing \fg{fnm}\f0: [\fb{ridStart:D8}\f0, \fb{ridBefore:D8}\f0>{dryText}"
+            if o.Dry |> not then
+              let deleted = odb.DeleteEvents(ridStart, ridBefore)
+              cp $"  Deleted \fr{deleted}\f0 event records"
+          else
+            cp $"Processing \fg{fnm}\f0: [\fyno elegible events\f0]{dryText}"
         0
 
 let private runPurge args =
