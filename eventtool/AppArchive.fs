@@ -131,14 +131,14 @@ let private runBuildInner o =
             let maxRid = maxRids |> Seq.max
             maxRid + 1L
       let archiveBuilder = new ArchiveBuilder(job, ridStart)
-      let errorMessage = archiveBuilder.Validate()
+      let errorMessage = archiveBuilder.Validate(false)
       if errorMessage |> String.IsNullOrEmpty |> not then
         cp $"\foRequest validation failed: \fy{errorMessage}\f0."
         1
       else
         let fileName = archiveBuilder.GetArchiveFile(true)
         let shortName = fileName |> Path.GetFileName
-        let eventCount = archiveBuilder.RidEnd.Value - archiveBuilder.RidStart
+        let eventCount = archiveBuilder.RidEnd.Value - archiveBuilder.RidStart + 1L
         cp $"Archive file: \fg{shortName}\f0. \fb{eventCount}\f0 events."
         if o.Dry |> not then
           archiveBuilder.Build(true, false)
@@ -190,7 +190,9 @@ let private runBuild args =
   }
   match oo with
   | Some(o) ->
-    o |> runBuildInner
+    let ret = o |> runBuildInner
+    // cp $"\fkReturn status \fB{ret}\f0."
+    ret
   | None ->
     Usage.usage "archive"
     1

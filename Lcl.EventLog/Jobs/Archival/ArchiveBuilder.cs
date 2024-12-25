@@ -108,10 +108,15 @@ public class ArchiveBuilder
   /// database and check the record IDs, and if necessary, determine
   /// <see cref="RidEnd"/>.
   /// </summary>
+  /// <param name="allowCurrentMonth">
+  /// If true, the ending record ID can be in the current month.
+  /// If false, that situation is considered an error.
+  /// </param>
   /// <returns>
   /// Returns null on success, or an error message on failure.
   /// </returns>
-  public string? Validate()
+  public string? Validate(
+    bool allowCurrentMonth)
   {
     if(HasBeenValidated)
     {
@@ -146,6 +151,10 @@ public class ArchiveBuilder
         .FirstOrDefault();
       if(nextMonthRecord == null)
       {
+        if(!allowCurrentMonth)
+        {
+          return "No records found for the next month - not creating a partial archive for the current month";
+        }
         // No records for the next month, so the current archive ends at the last DB record
         tailRecord =
           odb.QueryEventHeaders(RidStart, null, reverse: true, limit: 1)
