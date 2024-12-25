@@ -116,13 +116,13 @@ public class TlobReader: IDisposable
     }
     var sizeText = Encoding.UTF8.GetString(_headerBuffer, 0, 6);
     var size = Int32.Parse(sizeText);
-    if(size > _blobBuffer.Length)
+    if(size+2 > _blobBuffer.Length)
     {
       // reallocate buffer, with some spare space
       _blobBuffer = new byte[size+4096];
     }
-    var nBlob = BaseStream.Read(_blobBuffer, 0, size);
-    if(nBlob != size)
+    var nBlob = BaseStream.Read(_blobBuffer, 0, size+2);
+    if(nBlob != size+2)
     {
       throw new IOException("Unexpected end of stream");
     }

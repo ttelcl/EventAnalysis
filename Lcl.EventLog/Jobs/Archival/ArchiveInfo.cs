@@ -201,7 +201,7 @@ public class ArchiveInfo
         "Expecting file name to start with 'archive'",
         nameof(fileName));
     }
-    if(!parts[5].Equals(".evarc", StringComparison.InvariantCultureIgnoreCase))
+    if(!parts[5].Equals("evarc", StringComparison.InvariantCultureIgnoreCase))
     {
       throw new ArgumentException(
         "Expecting file name to end with '.evarc' or '.evarc.gz'",
@@ -273,6 +273,7 @@ public class ArchiveInfo
       .Where(f => f.Name.Split('.').Length == 7)
       .ToList();
     var files = new List<ArchiveInfo>();
+    // Console.WriteLine($"Found {candidateFiles1.Count} uncompressed files and {candidateFiles2.Count} compressed files");
     foreach(var file in candidateFiles1.Concat(candidateFiles2))
     {
       try
@@ -283,6 +284,8 @@ public class ArchiveInfo
       {
         Trace.TraceError(
           $"Error parsing archive file '{file.Name}' (ignoring): {ex.Message}");
+        //Console.WriteLine(
+        //  $"Error parsing archive file '{file.Name}' (ignoring): {ex.Message}");
       }
     }
     return files;

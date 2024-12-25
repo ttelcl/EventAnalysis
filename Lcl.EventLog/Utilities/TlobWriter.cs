@@ -43,11 +43,14 @@ public class TlobWriter: IDisposable
   /// <param name="compress">
   /// If true, the output will be compressed using GZip.
   /// </param>
-  public static TlobWriter FromStream(Stream stream, bool compress)
+  /// <param name="leaveOpen">
+  /// If true, the stream will not be closed when the writer is disposed.
+  /// </param>
+  public static TlobWriter FromStream(Stream stream, bool compress, bool leaveOpen)
   {
     if(compress)
     {
-      stream = new GZipStream(stream, CompressionLevel.SmallestSize, false);
+      stream = new GZipStream(stream, CompressionLevel.SmallestSize, leaveOpen);
     }
     return new TlobWriter(stream);
   }
@@ -67,7 +70,7 @@ public class TlobWriter: IDisposable
   public static TlobWriter FromFile(string path, bool compress)
   {
     var stream = new FileStream(path, FileMode.Create, FileAccess.Write);
-    return FromStream(stream, compress);
+    return FromStream(stream, compress, false);
   }
 
   /// <summary>
@@ -100,6 +103,7 @@ public class TlobWriter: IDisposable
     Encoding.UTF8.GetBytes(tlob, 0, tlob.Length, _blobBuffer, 0);
     BaseStream.Write(_headerBuffer, 0, 8);
     BaseStream.Write(_blobBuffer, 0, blobByteCount);
+    BaseStream.Write(_headerBuffer, 6, 2); // Write a line break after the blob too
   }
 
   /// <summary>

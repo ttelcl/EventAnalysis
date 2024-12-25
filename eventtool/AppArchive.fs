@@ -51,7 +51,9 @@ let private runListInner o =
               $"\fy{archive.RidMax.Value:D6}"
             else
               "\fr???"
-          cp $"\fg{archive.JobName} \fc{archive.MonthTag} {ridMinTxt}\f0 - {ridMaxTxt}\f0."
+          let compressText =
+            if archive.Compressed then "(\fgcompressed\f0)" else "(\fRuncompressed\f0)"
+          cp $"\fg{archive.JobName} \fc{archive.MonthTag} {ridMinTxt}\f0 - {ridMaxTxt}\f0 {compressText}"
         0
 
 let private runList args =
@@ -139,8 +141,8 @@ let private runBuildInner o =
         let eventCount = archiveBuilder.RidEnd.Value - archiveBuilder.RidStart
         cp $"Archive file: \fg{shortName}\f0. \fb{eventCount}\f0 events."
         if o.Dry |> not then
-          cp "\frNot Implemented!\f0 \fg-dry\fo is currently mandatory\f0."
-          1
+          archiveBuilder.Build(true, false)
+          0
         else
           cp "\fo-dry\f0 was specified. Not running actual archiving"
           0

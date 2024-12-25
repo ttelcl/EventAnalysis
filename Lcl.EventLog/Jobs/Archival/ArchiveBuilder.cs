@@ -11,7 +11,10 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Lcl.EventLog.Jobs.Database;
+using Lcl.EventLog.Jobs.Database.Skeleton;
 using Lcl.EventLog.Utilities;
+
+using Newtonsoft.Json;
 
 namespace Lcl.EventLog.Jobs.Archival;
 
@@ -199,7 +202,21 @@ public class ArchiveBuilder
     return null;
   }
 
-  public void Build()
+  /// <summary>
+  /// Build (write) the validated archive. It includes the current
+  /// database metadata as first record (JSON), followed by the events
+  /// (XML) in the determined range.
+  /// </summary>
+  /// <param name="compressed">
+  /// If true, the output will be compressed using GZip, creating
+  /// a *.evarc.gz file. If false, the output will be uncompressed,
+  /// creating a *.evarc file.
+  /// </param>
+  /// <param name="shallow">
+  /// Default false. If true, the metadata will be shallow, containing
+  /// only the provider mappings, not the tasks and operations.
+  /// </param>
+  public void Build(bool compressed, bool shallow = false)
   {
     if(!HasBeenValidated)
     {
@@ -211,7 +228,33 @@ public class ArchiveBuilder
       throw new InvalidOperationException(
         "Archive building command is not valid (validation failed)");
     }
-    throw new NotImplementedException();
+    var finalName =
+      GetArchiveFile(compressed) ?? throw new InvalidOperationException(
+        "Internal error: validation both done and not done???");
+    var tmpName = Path.Combine(
+      Owner.JobFolder, ArchiveInfo!.GetUnsealedName(compressed)) + ".tmp";
+    using(var writer = TlobWriter.FromFile(tmpName, compress: compressed))
+    {
+      using var odb = Owner.OpenInnerDatabase2(false);
+      var meta = ChannelDto.FromJob(Owner, shallow);
+      var metaJson = JsonConvert.SerializeObject(meta, Formatting.Indented);
+      writer.WriteTlob(metaJson);
+      var rows = odb.QueryEvents(
+        RidStart, RidEnd!.Value, reverse: false);
+      foreach(var row in rows)
+      {
+        writer.WriteTlob(row.Xml);
+      }
+    }
+    if(File.Exists(finalName))
+    {
+      var bakName = finalName + ".bak";
+      File.Replace(tmpName, finalName, bakName);
+    }
+    else
+    {
+      File.Move(tmpName, finalName);
+    }
   }
 
 }
