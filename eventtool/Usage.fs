@@ -86,7 +86,7 @@ let usage targetCommand =
       cp "   \fg-to \fc<rid>\f0            Enumerate events going back from record id \fc<rid>\f0 (default: last known RID)"
   if targetMatch "archive" then
     cp "\foeventtool \fyarchive\f0 \fm...\f0"
-    cp "   Archive database operations"
+    cp "   Database archival and related operations"
     cp "\foeventtool \fyarchive list\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0]"
     cp "   List archive files for the job existing in the job's database folder"
     if detailed then
@@ -100,7 +100,10 @@ let usage targetCommand =
       cp "   \fg-rid \fc<rid>\f0           Instead of continuing, start from the given RID"
       cp "   \fg-dry\fx\f0                 Determine what would be archived next, but don't actually do it"
       cp "   \fg-repeat\fx\f0              Keep writing monthly archives until the current month"
-    cp "\foeventtool \fyarchive purge\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] \fg-before \fc<yyyy-MM-dd>\f0 [\fg-dry\f0] [\fg-cap \fc<cap=12>\f0]"
+    cp ("\foeventtool \fyarchive purge\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] " +
+        "[\fg-before \fc<yyyy-MM-dd>\f0|\fg-keep\f0 \fc<n>\f0 [\fydays\f0|\fyweeks\f0|\fymonths\f0]] " + 
+        "[\fg-dry\f0] [\fg-cap \fc<cap=12>\f0]")
+    cp "\foeventtool \fypurge\f0 \fm...\f0"
     cp "   Purge data that is covered by archives and is before the given date."
     cp "   The \fg-before\f0 date must be at least 3 months old"
     if detailed then
@@ -109,6 +112,10 @@ let usage targetCommand =
       cp "   \fg-dry\fx\f0                 Determine what would be archived next, but don't actually do it"
       cp "   \fg-before \fc<yyyy-MM-dd>\f0 Only purge events before this date. Must be at least 3 months ago"
       cp "   \fg-cap \fc<cap>\f0           Maximum number of archive files whose database events to purge. Default 12"
+    cp "\foeventtool \fyarchive vacuum\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0]"
+    cp "\foeventtool \fyvacuum\f0 \fm...\f0"
+    cp "   Compact the database by removing unused space."
+    cp "   \foWarning:\fy This is a slow operation and must not be interrupted\f0."
   if targetMatch "diag" then
     cp "\foeventtool \fydiag\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-day\f0|\fg-week\f0|\fg-month\f0] [\fg-rid \fc<ridmin>\f0]"
     cp "   Generate a CSV file summarizing DB content on a day-by-day or month-by-month base"

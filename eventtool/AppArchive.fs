@@ -305,6 +305,9 @@ let private runPurge args =
       else
         cp $"\foExpecting a date in \fcyyyy-MM-dd\fo format but got \fC{txt}\f0."
         None
+    | "-keep" :: ntxt :: units :: rest ->
+      cp "\fr-keep Not Yet Implemented\f0."
+      None
     | "-dry" :: rest ->
       rest |> parsemore {o with Dry = true}
     | "-cap" :: captxt :: rest ->
@@ -357,6 +360,10 @@ let run args =
     rest |> runBuild
   | "purge" :: rest ->
     rest |> runPurge
+  | "vacuum" :: rest ->
+    cp "\foNot Yet Implemented\f0."
+    Usage.usage "archive"
+    1
   | "-h" :: _ ->
     Usage.usage "archive"
     1

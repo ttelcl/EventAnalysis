@@ -52,6 +52,12 @@ let rec run arglist =
   | "diagnose" :: rest
   | "diag" :: rest ->
     rest |> AppDiag.run
+  | "purge" :: rest ->
+    // alias for 'archive purge <rest>'
+    arglist |> AppArchive.run
+  | "vacuum" :: rest ->
+    // alias for 'archive vacuum <rest>'
+    arglist |> AppArchive.run
   | x :: _ ->
     cp $"\foUnknown command \fr{x}\f0."
     1
