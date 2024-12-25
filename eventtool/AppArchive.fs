@@ -98,6 +98,7 @@ type private BuildOptions = {
   MachineName: string
   Dry: bool
   RidStart: int64 option
+  Repeat: bool
 }
 
 let private runBuildInner o =
@@ -133,8 +134,12 @@ let private runBuildInner o =
       let archiveBuilder = new ArchiveBuilder(job, ridStart)
       let errorMessage = archiveBuilder.Validate(false)
       if errorMessage |> String.IsNullOrEmpty |> not then
-        cp $"\foRequest validation failed: \fy{errorMessage}\f0."
-        1
+        if errorMessage.Contains("partial archive") then
+          cp $"\foStopping: \fy{errorMessage}\f0."
+          2
+        else
+          cp $"\foRequest validation failed: \fy{errorMessage}\f0."
+          1
       else
         let fileName = archiveBuilder.GetArchiveFile(true)
         let shortName = fileName |> Path.GetFileName
@@ -146,6 +151,13 @@ let private runBuildInner o =
         else
           cp "\fo-dry\f0 was specified. Not running actual archiving"
           0
+
+let private runBuildRepeat o =
+  let mutable status = 0
+  cp "\fyPress \fRCTRL-C\fy to abort after the current archive\f0."
+  while status = 0 && (canceled() |> not) do
+    status <- o |> runBuildInner
+  if status = 2 then 0 elif status = 0 then 3 (*canceled*) else status
 
 let private runBuild args =
   let rec parsemore o args =
@@ -173,6 +185,8 @@ let private runBuild args =
     | "-m" :: mnm :: rest
     | "-machine" :: mnm :: rest ->
       rest |> parsemore {o with MachineName = mnm}
+    | "-repeat" :: rest ->
+      rest |> parsemore {o with Repeat = true}
     | [] ->
       if o.JobName |> String.IsNullOrEmpty then
         cp "\foNo job name provided\f0."
@@ -187,12 +201,14 @@ let private runBuild args =
     MachineName = Environment.MachineName
     Dry = false
     RidStart = None
+    Repeat = false
   }
   match oo with
   | Some(o) ->
-    let ret = o |> runBuildInner
-    // cp $"\fkReturn status \fB{ret}\f0."
-    ret
+    if o.Repeat then
+      o |> runBuildRepeat
+    else
+      o |> runBuildInner
   | None ->
     Usage.usage "archive"
     1
