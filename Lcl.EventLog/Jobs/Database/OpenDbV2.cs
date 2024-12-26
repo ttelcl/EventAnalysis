@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
 using System.IO;
@@ -1075,6 +1076,24 @@ WHERE rid >= @RidFrom AND rid < @RidBefore;
       });
       trx.Commit();
       return Math.Max(deleted1, deleted2);
+    }
+
+    /// <summary>
+    /// Vacuum the database (shrinking the database file size by removing
+    /// unused space). This operation can be slow and once started must run
+    /// to completion.
+    /// </summary>
+    public void Vacuum()
+    {
+      if(!CanWrite)
+      {
+        throw new InvalidOperationException(
+          "Cannot vacuum the database. The database connection is read-only.");
+      }
+      // Not sure if it is still an issue, but some versions of Dapper
+      // get confused by single word commands like "VACUUM". The explicit
+      // CommandType.Text is a workaround.
+      Connection.Execute("VACUUM;", commandType: CommandType.Text);
     }
 
     private bool InitCompositeView()

@@ -16,10 +16,97 @@ open Lcl.EventLog.Utilities.Xml
 open ColorPrint
 open CommonTools
 
-type private ListOptions = {
+type private ListOptions = { // also used for Vacuum
   JobName: string
   MachineName: string
 }
+
+let waitForYesOrNo (prompt:string) =
+  let mutable result: Option<bool> = Option.None
+  while result.IsNone do
+    cpx $"\fw{prompt}\f0 '\fgy\f0' or '\frn\f0'? "
+    let ki = Console.ReadKey()
+    cp ""
+    if ki.Key = ConsoleKey.Escape || ki.KeyChar = 'n' then
+      result <- false |> Some
+    elif ki.KeyChar = 'y' then
+      result <- true |> Some
+    else
+      cp "\fkTry again\f0."
+  result.Value
+
+let private runVacuumInner o =
+  let ezc = new EventZoneConfig(o.MachineName)
+  let edz = new EventDataZone(false, ezc.Machine)
+  if edz.Exists |> not then
+    cp $"\frNo data for machine \f0'\fc{ezc.Machine}\f0'"
+    1
+  else
+    let job = edz.TryOpenJob(o.JobName)
+    if job = null then
+      cp $"\frNo job or channel \f0'\fg{o.JobName}\f0' \frknown for machine \f0'\fc{o.MachineName}\f0'"
+      1
+    else
+      let db = job.OpenDatabase2(true)
+      let fnm = db.FileName
+      let fi = new FileInfo(fnm)
+      let lengthBefore = fi.Length
+      cp $"Size before vacuuming: \fb{lengthBefore}\f0."
+      cp $"Database file is \fg{fi.FullName}\f0."
+      cp $"\foMake sure you have enough free disk space to temporarily hold a second copy of the DB\f0."
+      cp $"\foVacuuming may take a long time (up to some tens of minutes) and should \frnot be interrupted\f0."
+      let confirmed = "Continue?" |> waitForYesOrNo
+      if confirmed then
+        cp "\fyStarting VACUUM operation on database\f0."
+        use odb = db.Open(true)
+        cp "\frDO NOT INTERRUPT\f0."
+        // odb.Vacuum()
+        fi.Refresh()
+        let lengthAfter = fi.Length
+        let fraction = float(lengthAfter) / float(lengthBefore)
+        let percentage = (fraction * 100.0).ToString("F1") 
+        cp $"Size change: from \fb{lengthBefore}\f0 to \fc{lengthAfter}\f0 (\fg{percentage}%%\f0)"
+        0
+      else
+        cp "Vacuum operation aborted."
+        1
+
+let runVacuum args =
+  let rec parsemore o args =
+    match args with
+    | "-v" :: rest ->
+      verbose <- true
+      rest |> parsemore o
+    | "-h" :: _ ->
+      None
+    | "-job" :: job :: rest ->
+      if job |> EventJobConfig.IsValidJobName |> not then
+        cp $"'\fg{job}\f0' \fois not a valid job name\f0."
+        None
+      else
+        rest |> parsemore {o with JobName = job}
+    | "-m" :: mnm :: rest
+    | "-machine" :: mnm :: rest ->
+      rest |> parsemore {o with MachineName = mnm}
+    | [] ->
+      if o.JobName |> String.IsNullOrEmpty then
+        cp "\foNo job name provided\f0."
+        None
+      else
+        o |> Some
+    | x :: _ ->
+      cp $"\foUnrecognized argument \f0'\fy{x}\f0'"
+      None
+  let oo = args |> parsemore {
+    JobName = null
+    MachineName = Environment.MachineName
+  }
+  match oo with
+  | Some(o) ->
+    o |> runVacuumInner
+  | None ->
+    Usage.usage "archive"
+    1
 
 let private runListInner o =
   let ezc = new EventZoneConfig(o.MachineName)
@@ -245,13 +332,13 @@ let private runPurgeInner o =
             ai.RidMin.Value >= ridMin)
         |> Seq.truncate o.Cap
         |> Seq.toArray
+      let beforeText = before.ToString("yyyy-MM-dd")
       if archives.Length = 0 then
-        let beforeText = before.ToString("yyyy-MM-dd")
         cp $"\foNo (compressed) archive files to purge found for job \f0'\fg{o.JobName}\f0' (before {beforeText})"
         1
       else
         let dryText = if o.Dry then " \f0(\fyDry run\f0)" else ""
-        cp $"Processing \fb{archives.Length}\f0 matching archive files\f0{dryText}"
+        cp $"Processing \fb{archives.Length}\f0 matching archive files (before \fg{beforeText}\f0){dryText}"
         if archives.Length = o.Cap then
           cp $"(\fycapped at \fb{o.Cap}\f0)"
         use odb = job.OpenInnerDatabase2(o.Dry |> not)
@@ -283,6 +370,7 @@ let private runPurgeInner o =
         0
 
 let private runPurge args =
+  let maxBefore = DateTime.UtcNow.AddMonths(-3).Date
   let rec parsemore o args =
     match args with
     | "-v" :: rest ->
@@ -291,7 +379,6 @@ let private runPurge args =
     | "-h" :: _ ->
       None
     | "-before" :: txt :: rest ->
-      let maxBefore = DateTime.UtcNow.AddMonths(-3).Date
       let ok, before =
         DateTime.TryParseExact(
           txt, "yyyy-MM-dd", CultureInfo.InvariantCulture,
@@ -306,8 +393,28 @@ let private runPurge args =
         cp $"\foExpecting a date in \fcyyyy-MM-dd\fo format but got \fC{txt}\f0."
         None
     | "-keep" :: ntxt :: units :: rest ->
-      cp "\fr-keep Not Yet Implemented\f0."
-      None
+      let ok, n = ntxt |> Int32.TryParse
+      if ok && n > 0 then
+        let now = DateTime.UtcNow
+        let beforeOpt =
+          match units with
+          | "days" -> now.AddDays(float(-n)).Date |> Some
+          | "weeks" -> now.AddDays(float(-n*7)).Date |> Some
+          | "months" -> now.AddMonths(-n).Date |> Some
+          | x ->
+            cp $"\foUnrecognized period \fy{x}\f0. Expecting one of \fGdays\f0, \fGweeks\f0, or \fGmonths\f0."
+            None
+        match beforeOpt with
+        | None -> None
+        | Some(before) ->
+          if before > maxBefore then
+            cp $"\foExpecting the date resulting from \fg-keep\fo to be at least 3 months old\f0."
+            None
+          else
+            rest |> parsemore {o with Before = beforeOpt}
+      else
+        cp "\foExpecting first argument after \fG-keep\fo to be a positive number\f0."
+        None
     | "-dry" :: rest ->
       rest |> parsemore {o with Dry = true}
     | "-cap" :: captxt :: rest ->
@@ -361,9 +468,7 @@ let run args =
   | "purge" :: rest ->
     rest |> runPurge
   | "vacuum" :: rest ->
-    cp "\foNot Yet Implemented\f0."
-    Usage.usage "archive"
-    1
+    rest |> runVacuum
   | "-h" :: _ ->
     Usage.usage "archive"
     1
