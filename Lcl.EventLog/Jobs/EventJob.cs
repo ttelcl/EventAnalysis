@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Lcl.EventLog.Jobs.Archival;
 using Lcl.EventLog.Jobs.Database;
 using Lcl.EventLog.Utilities;
 
@@ -268,7 +269,7 @@ namespace Lcl.EventLog.Jobs
     /// </summary>
     public long MaxRecordId2()
     {
-      if(!HasDbV1)
+      if(!HasDbV2)
       {
         return 0L;
       }
@@ -285,7 +286,7 @@ namespace Lcl.EventLog.Jobs
     /// </summary>
     public long MinRecordId2()
     {
-      if(!HasDbV1)
+      if(!HasDbV2)
       {
         return 0L;
       }
@@ -494,6 +495,19 @@ namespace Lcl.EventLog.Jobs
       {
         return db2.DbInit(); // this now includes the upgrade
       }
+    }
+
+    /// <summary>
+    /// Enumerate the archives for this job
+    /// </summary>
+    /// <param name="folder">
+    /// The folder where to look for archives. If null, the job folder itself is used.
+    /// </param>
+    /// <returns></returns>
+    public IEnumerable<ArchiveInfo> EnumArchives(string? folder = null)
+    {
+      folder = String.IsNullOrEmpty(folder) ? JobFolder : folder;
+      return ArchiveInfo.FindArchives(folder, Configuration.Name, Zone.Machine);
     }
 
     private void InitFolder()

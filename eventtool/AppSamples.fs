@@ -1,7 +1,7 @@
 ﻿module AppSamples
 
 open System
-open System.Diagnostics.Eventing.Reader
+open System.IO
 
 open Lcl.EventLog.Jobs
 open Lcl.EventLog.Jobs.Database
@@ -9,7 +9,6 @@ open Lcl.EventLog.Utilities
 
 open ColorPrint
 open CommonTools
-open System.IO
 
 type private Options = {
   Machine: string
@@ -67,7 +66,7 @@ let run args =
   let job = edz.TryOpenJob(o.JobName)
   if job = null then
     failwith $"No job or channel '{o.JobName}' known for machine '{o.Machine}'"
-  if job.HasDbV1 |> not then
+  if job.HasDbV2 |> not then
     failwith $"No data recorded yet for job '{o.JobName}'"
   let provider =
     let dors =

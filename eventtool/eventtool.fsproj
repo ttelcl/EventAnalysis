@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -23,18 +23,22 @@
     <Compile Include="AppOverview2.fs" />
     <Compile Include="AppJobs.fs" />
     <Compile Include="AppSamples.fs" />
+    <Compile Include="AppJobSample.fs" />
     <Compile Include="AppPlcDump.fs" />
     <Compile Include="AppFix.fs" />
     <Compile Include="AppDump.fs" />
+    <Compile Include="AppMetaDump.fs" />
+    <Compile Include="AppArchive.fs" />
+    <Compile Include="AppDiag.fs" />
     <Compile Include="Program.fs" />
     <None Include="README.md" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Lcl.XsvLib" Version="1.2.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.11" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="System.Diagnostics.EventLog" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Diagnostics.EventLog" Version="8.0.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,7 +46,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="6.0.6" />
+    <PackageReference Update="FSharp.Core" Version="8.0.403" />
   </ItemGroup>
 
 </Project>

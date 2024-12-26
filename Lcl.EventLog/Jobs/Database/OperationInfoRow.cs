@@ -75,5 +75,9 @@ namespace Lcl.EventLog.Jobs.Database
     /// <inheritdoc/>
     public (int, int, int, int, int) Key => (EventId, EventVersion, TaskId, ProviderId, OperationId);
 
+    /// <summary>
+    /// Key for the task
+    /// </summary>
+    public (int, int, int, int) TaskKey => (EventId, EventVersion, TaskId, ProviderId);
   }
 }

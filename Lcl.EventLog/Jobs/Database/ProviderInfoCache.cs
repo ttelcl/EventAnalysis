@@ -76,7 +76,20 @@ namespace Lcl.EventLog.Jobs.Database
     /// cache if it wasn't observed before. Returns true if a new record
     /// was added, false if it already existed.
     /// </summary>
-    public bool Observe(string prvName, string? prvGuid)
+    /// <param name="prvName">
+    /// The provider name
+    /// </param>
+    /// <param name="prvGuid">
+    /// The provider GUID, if it exists and is known
+    /// </param>
+    /// <param name="prvId">
+    /// If not null, the provider ID to use. This method will
+    /// verify that the ID is not already in use by another provider
+    /// record and that it matches the existing record that matches
+    /// <paramref name="prvName"/> if such record exists.
+    /// If null (default), no such checks are performed.
+    /// </param>
+    public bool Observe(string prvName, string? prvGuid, int? prvId = null)
     {
       var existing = Find(prvName);
       if(existing != null && existing.ProviderGuid != prvGuid)
@@ -86,9 +99,32 @@ namespace Lcl.EventLog.Jobs.Database
         throw new InvalidOperationException(
           $"Conflicting provider GUID declaration for '{prvName}': '{eguid}' vs '{nguid}'");
       }
+      if(prvId != null)
+      {
+        if(existing == null)
+        {
+          var existing2 = Find(prvId.Value);
+          if(existing2 != null)
+          {
+            throw new InvalidOperationException(
+              $"Conflicting provider ID declaration for '{prvName}': " +
+              $"{prvId.Value} is already in use by {existing2.ProviderName}");
+          }
+        }
+        else
+        {
+          if(existing.ProviderId != prvId.Value)
+          {
+            throw new InvalidOperationException(
+              $"Conflicting provider ID declaration for '{prvName}': " +
+              $"{prvId.Value} vs {existing.ProviderId}");
+          }
+        }
+      }
       if(existing == null)
       {
-        var pir = new ProviderInfoRow(_nextId++, prvName, prvGuid);
+        var prvId2 = prvId ?? _nextId++;
+        var pir = new ProviderInfoRow(prvId2, prvName, prvGuid);
         Add(pir);
         _newlyAdded.Add(pir);
         return true;

@@ -51,6 +51,12 @@ let usage targetCommand =
       cp "   \fg-e \fc<event-id>\f0        The event ID. In case multiple providers provide the same event, a \fg-p\f0 option is required."
       cp "   \fg-p \fc<provider>\f0        Disambiguate the event source. \fc<provider>\f0 can be a provider ID or a unique part of"
       cp "   \fx\fx\fx                     the provider name. Use \foeventtool \fyoverview\f0 to discover provider names for an event."
+  if targetMatch "job-sample" then
+    cp "\foeventtool \fyjob-sample\f0 \fg-job \fc<jobname>\f0 [\fg-n \fc<n>\f0] [\fg-m \fc<machine>\f0]"
+    cp "   Create a sample dump XML file containing a sample for each distinct provider/event combination"
+    if detailed then
+      cp "   \fg-job \fc<jobname>\f0       The name of a job or channel to extract events from"
+      cp "   \fg-n\f0\fx                   The number of events to include. This can be \fb0\f0 to not include any event samples."
   if targetMatch "update" then
     cp "\foeventtool \fyupdate\f0 {\fg-job \fc<jobname>\f0} \fg-cap \fc<n>\f0 [\fg-db1\f0] [\fg-db2\f0]"
     cp "   Run one or more jobs, transferring events from the event log channel into the job's DB."
@@ -59,6 +65,14 @@ let usage targetCommand =
       cp "   \fg-cap \fc<n>\f0             The maximum number of events to copy"
       cp "   \fg-db1 \fx   \f0             Update the legacy (V1) database"
       cp "   \fg-db2 \fx   \f0             Update the new (V2) database"
+  if targetMatch "metadump" then
+    cp "\foeventtool \fymetadump\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-shallow\f0|\fg-deep\f0]"
+    cp "   Dump the current metadata for the job in JSON form: all DB content excluding actual events"
+    if detailed then
+      cp "   \fg-job \fc<jobname>\f0       The name of the job (selecting the database to dump)"
+      cp "   \fg-m \fc<machine>\f0         The machine whose events to inspect (default: current machine)"
+      cp "   \fg-deep\f0                   (default) Include providers, tasks and operations"
+      cp "   \fg-shallow\f0                Include only providers, not tasks nor operations"
   if targetMatch "dump" then
     cp "\foeventtool \fydump\f0 [\fg-list\f0] \fg-job \fc<jobname>\f0 \fg-e \fc<event>\f0 [\fg-p \fc<provider>\f0] [\fg-n \fc<n>\f0|\fg-N\f0] [\fg-to \fc<rid>\f0]"
     cp "   Dump data for matching events to a CSV file. Events are processed from newest to oldest."
@@ -70,27 +84,67 @@ let usage targetCommand =
       cp "   \fg-n \fc<n>\f0               The maximum number of events to dump (default 1000)"
       cp "   \fg-N \fx\fx                  Remove the cap on the number of events (equivalent to \fg-n \fc2147483647\f0)"
       cp "   \fg-to \fc<rid>\f0            Enumerate events going back from record id \fc<rid>\f0 (default: last known RID)"
+  if targetMatch "archive" then
+    cp "\foeventtool \fyarchive list\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0]"
+    cp "   List archive files for the job existing in the job's database folder"
+    if detailed then
+      cp "   \fg-job \fc<jobname>\f0       The name of the job (selecting the database)"
+      cp "   \fg-m \fc<machine>\f0         The machine whose events to inspect (default: current machine)"
+    cp "\foeventtool \fyarchive build\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-rid \fc<rid>\f0] [\fg-repeat\f0] [\fg-dry\f0]"
+    cp "   Build the next archive file. Optionally repeat."
+    if detailed then
+      cp "   \fg-job \fc<jobname>\f0       The name of the job (selecting the database)"
+      cp "   \fg-m \fc<machine>\f0         The machine whose events to inspect (default: current machine)"
+      cp "   \fg-rid \fc<rid>\f0           Instead of continuing, start from the given RID"
+      cp "   \fg-dry\fx\f0                 Determine what would be archived next, but don't actually do it"
+      cp "   \fg-repeat\fx\f0              Keep writing monthly archives until the current month"
+    cp ("\foeventtool \fyarchive purge\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] " +
+        "[\fg-before \fc<yyyy-MM-dd>\f0|\fg-keep\f0 \fc<n>\f0 [\fydays\f0|\fyweeks\f0|\fymonths\f0]] " + 
+        "[\fg-dry\f0] [\fg-cap \fc<cap=12>\f0]")
+    cp "\foeventtool \fypurge\f0 \fm...\f0"
+    cp "   Purge data that is covered by archives and is before the given date."
+    cp "   The \fg-before\f0 date must be at least 3 months old"
+    if detailed then
+      cp "   \fg-job \fc<jobname>\f0       The name of the job (selecting the database)"
+      cp "   \fg-m \fc<machine>\f0         The machine whose events to inspect (default: current machine)"
+      cp "   \fg-dry\fx\f0                 Determine what would be archived next, but don't actually do it"
+      cp "   \fg-before \fc<yyyy-MM-dd>\f0 Only purge events before this date. Must be at least 3 months ago"
+      cp "   \fg-keep\f0 \fc<n>\f0 [\fydays\f0|\fyweeks\f0|\fymonths\f0]  Alternative for \fg-before\f0. Default \fg-keep 12 months\f0."
+      cp "   \fg-cap \fc<cap>\f0           Maximum number of archive files whose database events to purge. Default 12"
+    cp "\foeventtool \fyarchive vacuum\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0]"
+    cp "\foeventtool \fyvacuum\f0 \fm...\f0"
+    cp "   Compact the database by removing unused space."
+    cp "   \foWarning:\fy This is a slow operation and must not be interrupted\f0."
+  if targetMatch "diag" then
+    cp "\foeventtool \fydiag\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-day\f0|\fg-week\f0|\fg-month\f0] [\fg-rid \fc<ridmin>\f0]"
+    cp "   Generate a CSV file summarizing DB content on a day-by-day or month-by-month base"
+    if detailed then
+      cp "   \fg-job \fc<jobname>\f0       The name of the job (selecting the database)"
+      cp "   \fg-m \fc<machine>\f0         The machine whose events to inspect (default: current machine)"
+      cp "   \fg-rid \fc<ridmin>\f0        The RID where to start scanning"
   if targetMatch "fix" then
     cp "\foeventtool \fyfix\f0 [\fg-job \fc<jobname>\f0|\fg-all\f0] [\fg-m \fc<machine>\f0]"
     cp "   Create missing database files for the job."
-  if targetMatch "plc-dump" then
-    cp "\foeventtool \fyplc-dump\f0 [\fg-from \fc<rid>\f0] [\fg-to \fc<rid>\f0] [\fg-job \fc<job>\f0 {\fg-e \fc<eid>\f0}] [\fg-m \fc<machine>\f0]"
-    cp "   Backward compat event dump file export (if -job and -e are omitted)"
-  if targetMatch "export" then
-    cp "\foeventtool \fyexport\f0 [\fg-m \fc<machine>\f0] \fg-job \fc<jobname> \fg-file \fc<dumpfile>"
-    cp "   \frNot yet implemented!\f0 Export events from an event job database to an event data file."
-    if detailed then
-      ()
-  if targetMatch "import" then
-    cp "\foeventtool \fyimport\f0 \fg-m \fc<machine>\f0 \fg-job \fc<jobname> \fg-file \fc<dumpfile>"
-    cp "   \frNot yet implemented!\f0 Import events from an event data file into an event job database."
-    if detailed then
-      ()
-  if targetMatch "overview1" then
-    cp "\fR(legacy) \foeventtool \fyoverview1\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-nosize\f0]"
-    cp "   \fkPrint event and task statistics and settings for the channel, using the \fRlegacy\fk data\f0."
-    if detailed then
-      ()
+  // NYI, and thes descriptions doesn't match probable design:
+  //if targetMatch "export" then
+  //  cp "\foeventtool \fyexport\f0 [\fg-m \fc<machine>\f0] \fg-job \fc<jobname> \fg-file \fc<dumpfile>"
+  //  cp "   \frNot yet implemented!\f0 Export events from an event job database to an event data file."
+  //  if detailed then
+  //    ()
+  //if targetMatch "import" then
+  //  cp "\foeventtool \fyimport\f0 \fg-m \fc<machine>\f0 \fg-job \fc<jobname> \fg-file \fc<dumpfile>"
+  //  cp "   \frNot yet implemented!\f0 Import events from an event data file into an event job database."
+  //  if detailed then
+  //    ()
+  // Deprecated:
+  //if targetMatch "plc-dump" then
+  //  cp "\fR(legacy) \foeventtool \fyplc-dump\f0 [\fg-from \fc<rid>\f0] [\fg-to \fc<rid>\f0] [\fg-job \fc<job>\f0 {\fg-e \fc<eid>\f0}] [\fg-m \fc<machine>\f0]"
+  //  cp "   \fkBackward compat event dump file export (if -job and -e are omitted)\f0"
+  //if targetMatch "overview1" then
+  //  cp "\fR(legacy) \foeventtool \fyoverview1\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-nosize\f0]"
+  //  cp "   \fkPrint event and task statistics and settings for the channel, using the \fRlegacy\fk data\f0."
+  //  if detailed then
+  //    ()
   
   
 

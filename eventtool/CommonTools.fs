@@ -125,6 +125,7 @@ let private consoleCancelToken =
           color ConsoleColor.Yellow
           printfn "Stopping ...!"
           resetColor ()
+          printfn "(stop in progress)"
           cts.Cancel()
           args.Cancel <- true
       )
