@@ -12,6 +12,7 @@ open Lcl.EventLog.Utilities
 
 open ColorPrint
 open CommonTools
+open System.IO
 
 type private DiagMode =
   | Day
@@ -53,8 +54,12 @@ let private runDiagInner o (odb: OpenDbV2) (row0: EventHeaderRow) =
   let colUtcMax = "utcmax" |> xbuffer.Declare<string>
   xbuffer.Lock()
   let period = o.Period.Value
-  let key0 = row0.Stamp |> TimeUtil.EpochDateTimeOffset |> periodKey period
-  let onm = $"{o.JobName}.diag-{period.ToString().ToLower()}.{key0}.csv"
+  let lastRow = odb.LastEventHeader() // we can be sure this isn't null
+  let key0 = (row0.Stamp |> TimeUtil.EpochDateTimeOffset).UtcDateTime.ToString("yyyyMMdd-HH")
+  let key1 = (lastRow.Stamp |> TimeUtil.EpochDateTimeOffset).UtcDateTime.ToString("yyyyMMdd-HH")
+  let onm0 = $"{o.JobName}.diag-{period.ToString().ToLower()}.{key0}.{key1}.csv"
+  let folder = odb.Owner.DbDirectory
+  let onm = Path.Combine(folder, onm0)
   do
     // cp $"Writing \fg{onm}\f0"
     use w = onm |> startFile
@@ -87,12 +92,10 @@ let private runDiagInner o (odb: OpenDbV2) (row0: EventHeaderRow) =
       row |> stats.ObserveRow
       stop |> not
     
-    odb.ChunkedEvents(
-      32768, false, new Nullable<int>(), o.RidMin)
+    odb.ChunkedEvents(32768, false, new Nullable<int>(), o.RidMin)
     |> Seq.takeWhile observe
     |> Seq.iter ignore
     "" |> emitAndReset
-    
 
   onm |> finishFile
   0
