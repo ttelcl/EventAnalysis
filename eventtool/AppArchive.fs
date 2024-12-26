@@ -438,7 +438,7 @@ let private runPurge args =
         cp "\foNo job name provided\f0."
         None
       elif o.Before.IsNone then
-        cp "\foNo \fG-before\fo date provided\f0."
+        cp "\foNo \fG-before\fo date or \fG-keep\fo option provided\f0."
         None
       else
         o |> Some
