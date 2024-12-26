@@ -85,8 +85,6 @@ let usage targetCommand =
       cp "   \fg-N \fx\fx                  Remove the cap on the number of events (equivalent to \fg-n \fc2147483647\f0)"
       cp "   \fg-to \fc<rid>\f0            Enumerate events going back from record id \fc<rid>\f0 (default: last known RID)"
   if targetMatch "archive" then
-    cp "\foeventtool \fyarchive\f0 \fm...\f0"
-    cp "   Database archival and related operations"
     cp "\foeventtool \fyarchive list\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0]"
     cp "   List archive files for the job existing in the job's database folder"
     if detailed then
@@ -111,6 +109,7 @@ let usage targetCommand =
       cp "   \fg-m \fc<machine>\f0         The machine whose events to inspect (default: current machine)"
       cp "   \fg-dry\fx\f0                 Determine what would be archived next, but don't actually do it"
       cp "   \fg-before \fc<yyyy-MM-dd>\f0 Only purge events before this date. Must be at least 3 months ago"
+      cp "   \fg-keep\f0 \fc<n>\f0 [\fydays\f0|\fyweeks\f0|\fymonths\f0]  Alternative for \fg-before\f0. Default \fg-keep 12 months\f0."
       cp "   \fg-cap \fc<cap>\f0           Maximum number of archive files whose database events to purge. Default 12"
     cp "\foeventtool \fyarchive vacuum\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0]"
     cp "\foeventtool \fyvacuum\f0 \fm...\f0"
@@ -126,24 +125,26 @@ let usage targetCommand =
   if targetMatch "fix" then
     cp "\foeventtool \fyfix\f0 [\fg-job \fc<jobname>\f0|\fg-all\f0] [\fg-m \fc<machine>\f0]"
     cp "   Create missing database files for the job."
-  if targetMatch "export" then
-    cp "\foeventtool \fyexport\f0 [\fg-m \fc<machine>\f0] \fg-job \fc<jobname> \fg-file \fc<dumpfile>"
-    cp "   \frNot yet implemented!\f0 Export events from an event job database to an event data file."
-    if detailed then
-      ()
-  if targetMatch "import" then
-    cp "\foeventtool \fyimport\f0 \fg-m \fc<machine>\f0 \fg-job \fc<jobname> \fg-file \fc<dumpfile>"
-    cp "   \frNot yet implemented!\f0 Import events from an event data file into an event job database."
-    if detailed then
-      ()
-  if targetMatch "plc-dump" then
-    cp "\fR(legacy) \foeventtool \fyplc-dump\f0 [\fg-from \fc<rid>\f0] [\fg-to \fc<rid>\f0] [\fg-job \fc<job>\f0 {\fg-e \fc<eid>\f0}] [\fg-m \fc<machine>\f0]"
-    cp "   \fkBackward compat event dump file export (if -job and -e are omitted)\f0"
-  if targetMatch "overview1" then
-    cp "\fR(legacy) \foeventtool \fyoverview1\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-nosize\f0]"
-    cp "   \fkPrint event and task statistics and settings for the channel, using the \fRlegacy\fk data\f0."
-    if detailed then
-      ()
+  // NYI, and thes descriptions doesn't match probable design:
+  //if targetMatch "export" then
+  //  cp "\foeventtool \fyexport\f0 [\fg-m \fc<machine>\f0] \fg-job \fc<jobname> \fg-file \fc<dumpfile>"
+  //  cp "   \frNot yet implemented!\f0 Export events from an event job database to an event data file."
+  //  if detailed then
+  //    ()
+  //if targetMatch "import" then
+  //  cp "\foeventtool \fyimport\f0 \fg-m \fc<machine>\f0 \fg-job \fc<jobname> \fg-file \fc<dumpfile>"
+  //  cp "   \frNot yet implemented!\f0 Import events from an event data file into an event job database."
+  //  if detailed then
+  //    ()
+  // Deprecated:
+  //if targetMatch "plc-dump" then
+  //  cp "\fR(legacy) \foeventtool \fyplc-dump\f0 [\fg-from \fc<rid>\f0] [\fg-to \fc<rid>\f0] [\fg-job \fc<job>\f0 {\fg-e \fc<eid>\f0}] [\fg-m \fc<machine>\f0]"
+  //  cp "   \fkBackward compat event dump file export (if -job and -e are omitted)\f0"
+  //if targetMatch "overview1" then
+  //  cp "\fR(legacy) \foeventtool \fyoverview1\f0 \fg-job \fc<jobname>\f0 [\fg-m \fc<machine>\f0] [\fg-nosize\f0]"
+  //  cp "   \fkPrint event and task statistics and settings for the channel, using the \fRlegacy\fk data\f0."
+  //  if detailed then
+  //    ()
   
   
 

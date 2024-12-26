@@ -60,7 +60,7 @@ let private runVacuumInner o =
         cp "\fyStarting VACUUM operation on database\f0."
         use odb = db.Open(true)
         cp "\frDO NOT INTERRUPT\f0."
-        // odb.Vacuum()
+        odb.Vacuum()
         fi.Refresh()
         let lengthAfter = fi.Length
         let fraction = float(lengthAfter) / float(lengthBefore)
@@ -370,7 +370,8 @@ let private runPurgeInner o =
         0
 
 let private runPurge args =
-  let maxBefore = DateTime.UtcNow.AddMonths(-3).Date
+  let now = DateTime.UtcNow
+  let maxBefore = now.AddMonths(-3).Date
   let rec parsemore o args =
     match args with
     | "-v" :: rest ->
@@ -395,7 +396,6 @@ let private runPurge args =
     | "-keep" :: ntxt :: units :: rest ->
       let ok, n = ntxt |> Int32.TryParse
       if ok && n > 0 then
-        let now = DateTime.UtcNow
         let beforeOpt =
           match units with
           | "days" -> now.AddDays(float(-n)).Date |> Some
@@ -439,7 +439,9 @@ let private runPurge args =
         None
       elif o.Before.IsNone then
         cp "\foNo \fG-before\fo date or \fG-keep\fo option provided\f0."
-        None
+        cp " \fr-> \f0Using \fg-keep \fb12 \fymonths\f0."
+        let before = now.AddMonths(-12).Date
+        {o with Before = before |> Some} |> Some
       else
         o |> Some
     | x :: _ ->
