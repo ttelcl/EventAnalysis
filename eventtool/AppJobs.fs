@@ -1,7 +1,7 @@
 ﻿module AppJobs
 
 open System
-open System.Diagnostics.Eventing.Reader
+open System.IO
 
 open Lcl.EventLog.Jobs
 open Lcl.EventLog.Jobs.Database
@@ -52,15 +52,21 @@ let run args =
             "\frAdmin\f0"
           else
             "\fk --- \f0"
-        let hasV1, hasV2 =
+        let hasV1, hasV2, fnm2 =
           let ejob = edz.TryOpenJob(job.Name)
           if ejob = null then
-            false, false
+            false, false, null
           else
-            ejob.HasDbV1, ejob.HasDbV2
-        let v1tag = if hasV1 then "\fgV1.\f0" else "\frV1!\f0"
+            ejob.HasDbV1, ejob.HasDbV2, ejob.RawDbFileV2
+        let v1tag = if hasV1 then "\fGv1.\f0" else "\fRV1!\f0"
         let v2tag = if hasV2 then "\fgV2.\f0" else "\frV2!\f0"
-        cp $"  \fc%-20s{job.Name} {adminTag} {v1tag} {v2tag} \fy{job.Channel}"
+        let v2date, v2size =
+          if hasV2 then
+            let fi2 = new FileInfo(fnm2)
+            fi2.LastWriteTime.ToString("yyyy-MM-dd"), fi2.Length.ToString()
+          else
+            "          ", ""
+        cp $"  \fc%-20s{job.Name} {adminTag} {v1tag} {v2tag} \f0{v2date} \fb{v2size,11} \fy{job.Channel}"
   if o.All then
     let anchor = new EventDataZone(true)
     cp $"Data folder is \fo{anchor.BaseFolder}\f0"
