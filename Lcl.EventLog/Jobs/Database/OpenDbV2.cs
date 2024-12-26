@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
 using System.IO;
@@ -217,7 +218,8 @@ WHERE eid=@Eid AND ever=@Ever AND task=@TaskId AND prvid=@PrvId AND opid=@OpId",
     }
 
     /// <summary>
-    /// Query the EventHeaders table
+    /// Query the EventHeaders table. All results are buffered in memory.
+    /// Consider using <see cref="ChunkedEventHeaders"/> instead for large result sets.
     /// </summary>
     /// <param name="ridMin">Minimum Record ID</param>
     /// <param name="ridMax">Maximum Record ID</param>
@@ -227,6 +229,9 @@ WHERE eid=@Eid AND ever=@Ever AND task=@TaskId AND prvid=@PrvId AND opid=@OpId",
     /// <param name="prvid">The exact internal provider ID</param>
     /// <param name="reverse">Return results in reverse RID order when true.</param>
     /// <param name="limit">The maximum number of rows to return</param>
+    /// <param name="task">The exact task id (null for 'any')</param>
+    /// <param name="ever">The exact event version (null for 'any')</param>
+    /// <param name="opid">The exact operation id (null for 'any')</param>
     /// <returns>A sequence of EventHeaderRow objects</returns>
     public IEnumerable<EventHeaderRow> QueryEventHeaders(
       long? ridMin = null,
@@ -236,7 +241,10 @@ WHERE eid=@Eid AND ever=@Ever AND task=@TaskId AND prvid=@PrvId AND opid=@OpId",
       long? tMax = null,
       int? prvid = null,
       bool reverse = false,
-      int? limit = null)
+      int? limit = null,
+      int? task = null,
+      int? ever = null,
+      int? opid = null)
     {
       var q = @"
 SELECT rid, stamp, eid, ever, task, prvid, opid
@@ -266,6 +274,18 @@ FROM EventHeader";
       {
         conditions.Add("prvid = @PrvId");
       }
+      if(task != null)
+      {
+        conditions.Add("task = @TaskId");
+      }
+      if(ever != null)
+      {
+        conditions.Add("ever = @EvVer");
+      }
+      if(opid != null)
+      {
+        conditions.Add("opid = @OpId");
+      }
       if(conditions.Count > 0)
       {
         var condition = @"
@@ -293,6 +313,8 @@ LIMIT {limit.Value}";
 
     /// <summary>
     /// Query the joined EventHeaders + EventXml tables
+    /// For large queries consider using <see cref="ChunkedEvents"/>
+    /// instead
     /// </summary>
     /// <param name="ridMin">Minimum Record ID</param>
     /// <param name="ridMax">Maximum Record ID</param>
@@ -360,7 +382,6 @@ INNER JOIN EventXml x on x.rid = h.rid";
       {
         conditions.Add("opid = @OpId");
       }
-
       if(conditions.Count > 0)
       {
         var condition = @"
@@ -390,7 +411,8 @@ LIMIT {limit.Value}";
     }
 
     /// <summary>
-    /// Query the EventHeaders table, returning only the record IDs
+    /// Query the EventHeaders table, returning only the record IDs.
+    /// For large queries, consider using <see cref="ChunkedEventIds"/> instead.
     /// </summary>
     /// <param name="ridMin">Minimum Record ID</param>
     /// <param name="ridMax">Maximum Record ID</param>
@@ -399,6 +421,10 @@ LIMIT {limit.Value}";
     /// <param name="tMax">Maximum event timestamp as epoch ticks</param>
     /// <param name="prvid">The exact internal provider ID</param>
     /// <param name="reverse">Return results in reverse RID order when true.</param>
+    /// <param name="limit">The maximum number of rows to return</param>
+    /// <param name="task">The exact task id (null for 'any')</param>
+    /// <param name="ever">The exact event version (null for 'any')</param>
+    /// <param name="opid">The exact operation id (null for 'any')</param>
     /// <returns>A sequence of record IDs</returns>
     public IEnumerable<long> QueryEventIds(
       long? ridMin = null,
@@ -407,7 +433,11 @@ LIMIT {limit.Value}";
       long? tMin = null,
       long? tMax = null,
       int? prvid = null,
-      bool reverse = false)
+      bool reverse = false,
+      int? limit = null,
+      int? task = null,
+      int? ever = null,
+      int? opid = null)
     {
       var q = @"
 SELECT rid
@@ -437,6 +467,18 @@ FROM EventHeader";
       {
         conditions.Add("prvid = @PrvId");
       }
+      if(task != null)
+      {
+        conditions.Add("task = @TaskId");
+      }
+      if(ever != null)
+      {
+        conditions.Add("ever = @EvVer");
+      }
+      if(opid != null)
+      {
+        conditions.Add("opid = @OpId");
+      }
       if(conditions.Count > 0)
       {
         var condition = @"
@@ -446,6 +488,11 @@ WHERE " + String.Join(@"
       }
       q += @"
 ORDER BY rid " + (reverse ? "DESC" : "ASC");
+      if(limit != null && limit > 0 && limit < Int32.MaxValue)
+      {
+        q += $@"
+LIMIT {limit.Value}";
+      }
 
       return Connection.Query<long>(q, new {
         RidMin = ridMin,
@@ -455,6 +502,223 @@ ORDER BY rid " + (reverse ? "DESC" : "ASC");
         TMax = tMax,
         PrvId = prvid,
       });
+    }
+
+    /// <summary>
+    /// Wrap another query function to execute it in chunks instead of all at once.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The return type of the query
+    /// </typeparam>
+    /// <param name="query">
+    /// The query function to wrap; One of <see cref="QueryEventHeaders"/>,
+    /// <see cref="QueryEvents"/>, or <see cref="QueryEventIds"/> of this DB.
+    /// </param>
+    /// <param name="getRecordId">
+    /// A helper function to extract the record ID from the result type
+    /// </param>
+    /// <param name="chunkSize">
+    /// The chunk size (minimum 64)
+    /// </param>
+    /// <param name="reverse">
+    /// True to return results in reverse order (unlike the wrapped query functions,
+    /// this parameter is now required)
+    /// </param>
+    /// <param name="limit">
+    /// The total maximum number of records to return (null for no limit)
+    /// </param>
+    /// <param name="ridMin">
+    /// The minimum record ID to start or end with (null for no minimum)
+    /// </param>
+    /// <param name="ridMax">
+    /// The maximum record ID to start or end with (null for no maximum)
+    /// </param>
+    /// <param name="eid">
+    /// The exact event ID to match (null for 'any')
+    /// </param>
+    /// <param name="tMin">
+    /// The minimum event timestamp as epoch ticks (null for no minimum)
+    /// </param>
+    /// <param name="tMax">
+    /// The maximum event timestamp as epoch ticks (null for no maximum)
+    /// </param>
+    /// <param name="prvid">
+    /// The exact internal provider ID (null for 'any')
+    /// </param>
+    /// <param name="task">
+    /// The exact task id (null for 'any')
+    /// </param>
+    /// <param name="ever">
+    /// The exact event version (null for 'any')
+    /// </param>
+    /// <param name="opid">
+    /// The exact operation id (null for 'any')
+    /// </param>
+    /// <returns>
+    /// A sequence of query results (of the type determined by <paramref name="query"/>)
+    /// </returns>
+    public static IEnumerable<T> ChunkedQuery<T>(
+      Func<
+        long?, // ridMin
+        long?, // ridMax
+        int?, // eid
+        long?, // tMin
+        long?, // tMax
+        int?, // prvid
+        bool, // reverse
+        int?, // limit
+        int?, // task
+        int?, // ever
+        int?, // opid
+        IEnumerable<T>> query,
+      Func<T, long> getRecordId,
+      int chunkSize,
+      bool reverse,
+      int? limit = null,
+      long? ridMin = null,
+      long? ridMax = null,
+      int? eid = null,
+      long? tMin = null,
+      long? tMax = null,
+      int? prvid = null,
+      int? task = null,
+      int? ever = null,
+      int? opid = null)
+    {
+      if(chunkSize < 64)
+      {
+        throw new ArgumentException("Chunk size must be at least 64");
+      }
+      int limitRemaining = limit ?? Int32.MaxValue;
+      if(reverse)
+      {
+        while(limitRemaining > 0)
+        {
+          var chunkLimit = Math.Min(limitRemaining, chunkSize);
+          var chunk =
+            query(ridMin, ridMax, eid, tMin, tMax, prvid, true, chunkLimit, task, ever, opid)
+            .ToList();
+          limitRemaining -= chunk.Count;
+          if(chunk.Count == 0)
+          {
+            // we're done
+            break;
+          }
+          foreach(var item in chunk)
+          {
+            yield return item;
+          }
+          var newMax = getRecordId(chunk.Last()) - 1;
+          ridMax = newMax;
+          if((ridMin != null && newMax < ridMin) || newMax < 0)
+          {
+            // we're done
+            break;
+          }
+        }
+      }
+      else
+      {
+        while(limitRemaining > 0)
+        {
+          var chunkLimit = Math.Min(limitRemaining, chunkSize);
+          var chunk =
+            query(ridMin, ridMax, eid, tMin, tMax, prvid, false, chunkLimit, task, ever, opid)
+            .ToList();
+          limitRemaining -= chunk.Count;
+          if(chunk.Count == 0)
+          {
+            // we're done
+            break;
+          }
+          foreach(var item in chunk)
+          {
+            yield return item;
+          }
+          var newMin = getRecordId(chunk.Last()) + 1;
+          ridMin = newMin;
+          if(ridMax != null && newMin > ridMax)
+          {
+            // we're done
+            break;
+          }
+        }
+      }
+    }
+
+    /// <summary>
+    /// Like <see cref="QueryEventHeaders"/>, but processes the results in chunks
+    /// behind the scenes.
+    /// </summary>
+    public IEnumerable<EventHeaderRow> ChunkedEventHeaders(
+      int chunkSize,
+      bool reverse,
+      int? limit = null,
+      long? ridMin = null,
+      long? ridMax = null,
+      int? eid = null,
+      long? tMin = null,
+      long? tMax = null,
+      int? prvid = null,
+      int? task = null,
+      int? ever = null,
+      int? opid = null)
+    {
+      return ChunkedQuery(
+        QueryEventHeaders,
+        (EventHeaderRow ehr) => ehr.RecordId,
+        chunkSize, reverse, limit, ridMin, ridMax,
+        eid, tMin, tMax, prvid, task, ever, opid);
+    }
+
+    /// <summary>
+    /// Like <see cref="QueryEvents"/>, but processes the results in chunks
+    /// behind the scenes.
+    /// </summary>
+    public IEnumerable<EventViewRow> ChunkedEvents(
+      int chunkSize,
+      bool reverse,
+      int? limit = null,
+      long? ridMin = null,
+      long? ridMax = null,
+      int? eid = null,
+      long? tMin = null,
+      long? tMax = null,
+      int? prvid = null,
+      int? task = null,
+      int? ever = null,
+      int? opid = null)
+    {
+      return ChunkedQuery(
+        QueryEvents,
+        (EventViewRow evr) => evr.RecordId,
+        chunkSize, reverse, limit, ridMin, ridMax,
+        eid, tMin, tMax, prvid, task, ever, opid);
+    }
+
+    /// <summary>
+    /// Like <see cref="QueryEventIds"/>, but processes the results in chunks
+    /// behind the scenes.
+    /// </summary>
+    public IEnumerable<long> ChunkedEventIds(
+      int chunkSize,
+      bool reverse,
+      int? limit = null,
+      long? ridMin = null,
+      long? ridMax = null,
+      int? eid = null,
+      long? tMin = null,
+      long? tMax = null,
+      int? prvid = null,
+      int? task = null,
+      int? ever = null,
+      int? opid = null)
+    {
+      return ChunkedQuery(
+        QueryEventIds,
+        (long rid) => rid,
+        chunkSize, reverse, limit, ridMin, ridMax,
+        eid, tMin, tMax, prvid, task, ever, opid);
     }
 
     /// <summary>
@@ -562,6 +826,24 @@ WHERE h.rid=@RecordId",
     public EventViewRow? FindEvent(IEventKey iek)
     {
       return FindEvent(iek.RecordId);
+    }
+
+    /// <summary>
+    /// Return the first event header record in the database
+    /// (or null if there are none)
+    /// </summary>
+    public EventHeaderRow? FirstEventHeader()
+    {
+      return QueryEventHeaders(reverse: false, limit: 1).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Return the last event header record in the database
+    /// (or null if there are none)
+    /// </summary>
+    public EventHeaderRow? LastEventHeader()
+    {
+      return QueryEventHeaders(reverse: true, limit: 1).FirstOrDefault();
     }
 
     /// <summary>
@@ -717,7 +999,7 @@ VALUES (@Rid, @Stamp, @Eid, @Ever, @Task, @PrvId, @OpId)",
           Task = task,
           PrvId = prvid,
           OpId = opid
-      });
+        });
     }
 
     internal int InsertEventXml(long rid, string xml)
@@ -754,6 +1036,66 @@ VALUES (@Rid, @Xml)"
         ehr.ProviderId, ehr.OperationId, xml);
     }
 
+    /// <summary>
+    /// Delete all event records with RIDs starting from <paramref name="ridFrom"/>
+    /// up to but not including <paramref name="ridBefore"/>.
+    /// </summary>
+    /// <param name="ridFrom">
+    /// The minimum RID to delete (inclusive)
+    /// </param>
+    /// <param name="ridBefore">
+    /// The maximum RID to delete (exclusive)
+    /// </param>
+    /// <returns>
+    /// The number of records deleted from the EventHeader and EventXml tables
+    /// (ideally those are the same, but in case of conflict the larger is returned)
+    /// </returns>
+    public int DeleteEvents(long ridFrom, long ridBefore)
+    {
+      if(!CanWrite)
+      {
+        throw new InvalidOperationException(
+          "Cannot delete records. The database connection is read-only.");
+      }
+      using var trx = Connection.BeginTransaction();
+      var deleted1 = Connection.Execute(@"
+DELETE FROM EventHeader
+WHERE rid >= @RidFrom AND rid < @RidBefore;
+"
+      , new {
+        RidFrom = ridFrom,
+        RidBefore = ridBefore,
+      });
+      var deleted2 = Connection.Execute(@"
+DELETE FROM EventXml
+WHERE rid >= @RidFrom AND rid < @RidBefore;
+"
+      , new {
+        RidFrom = ridFrom,
+        RidBefore = ridBefore,
+      });
+      trx.Commit();
+      return Math.Max(deleted1, deleted2);
+    }
+
+    /// <summary>
+    /// Vacuum the database (shrinking the database file size by removing
+    /// unused space). This operation can be slow and once started must run
+    /// to completion.
+    /// </summary>
+    public void Vacuum()
+    {
+      if(!CanWrite)
+      {
+        throw new InvalidOperationException(
+          "Cannot vacuum the database. The database connection is read-only.");
+      }
+      // Not sure if it is still an issue, but some versions of Dapper
+      // get confused by single word commands like "VACUUM". The explicit
+      // CommandType.Text is a workaround.
+      Connection.Execute("VACUUM;", commandType: CommandType.Text);
+    }
+
     private bool InitCompositeView()
     {
       var viewNames = DbViews().ToList();
@@ -772,7 +1114,7 @@ CREATE VIEW Composite AS
         return true;
       }
     }
-    
+
     private bool InitTables()
     {
       if(!CanWrite || !CanCreate)

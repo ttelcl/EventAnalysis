@@ -28,6 +28,8 @@
     <Compile Include="AppFix.fs" />
     <Compile Include="AppDump.fs" />
     <Compile Include="AppMetaDump.fs" />
+    <Compile Include="AppArchive.fs" />
+    <Compile Include="AppDiag.fs" />
     <Compile Include="Program.fs" />
     <None Include="README.md" />
   </ItemGroup>

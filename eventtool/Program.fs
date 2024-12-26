@@ -47,6 +47,17 @@ let rec run arglist =
   | "metadump" :: rest
   | "meta-dump" :: rest ->
     rest |> AppMetaDump.run
+  | "archive" :: rest ->
+    rest |> AppArchive.run
+  | "diagnose" :: rest
+  | "diag" :: rest ->
+    rest |> AppDiag.run
+  | "purge" :: rest ->
+    // alias for 'archive purge <rest>'
+    arglist |> AppArchive.run
+  | "vacuum" :: rest ->
+    // alias for 'archive vacuum <rest>'
+    arglist |> AppArchive.run
   | x :: _ ->
     cp $"\foUnknown command \fr{x}\f0."
     1
