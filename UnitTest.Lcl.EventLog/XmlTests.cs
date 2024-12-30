@@ -128,19 +128,25 @@ namespace UnitTest.Lcl.EventLog
       var queryUserId = new XmlEventQuery(
         "userid",
         ":data:SubjectUserSid");
-      var userid = queryUserId.Evaluate(dissector, transforms);
+      var userid =
+        queryUserId
+        .CreateEvaluator(transforms)
+        .Evaluate(dissector);
       Assert.Equal("S-1-5-FOO-BAR", userid);
       var queryPidRaw = new XmlEventQuery(
         "pid-raw",
         ":data:ProcessId",
         "");
-      var pidRaw = queryPidRaw.Evaluate(dissector, transforms);
+      var pidRaw =
+        queryPidRaw
+        .CreateEvaluator(transforms)
+        .Evaluate(dissector);
       Assert.Equal("0xa3fc", pidRaw);
       var queryPidDecimal = new XmlEventQuery(
         "pid-dec",
         ":data:ProcessId",
         "unsigned,notempty");
-      var pidDecimal = queryPidDecimal.Evaluate(dissector, transforms);
+      var pidDecimal = queryPidDecimal.CreateEvaluator(transforms).Evaluate(dissector);
       Assert.Equal("41980", pidDecimal);
     }
 
@@ -153,21 +159,21 @@ namespace UnitTest.Lcl.EventLog
   ""label"": ""userid"", 
   ""expression"": "":data:SubjectUserSid""
 }");
-      var userid = queryUserId.Evaluate(dissector, transforms);
+      var userid = queryUserId.CreateEvaluator(transforms).Evaluate(dissector);
       Assert.Equal("S-1-5-FOO-BAR", userid);
       var queryPidRaw = XmlEventQuery.FromJson(@"{
   ""label"": ""pid-raw"", 
   ""expression"": "":data:ProcessId"",
   ""transforms"": """"
 }");
-      var pidRaw = queryPidRaw.Evaluate(dissector, transforms);
+      var pidRaw = queryPidRaw.CreateEvaluator(transforms).Evaluate(dissector);
       Assert.Equal("0xa3fc", pidRaw);
       var queryPidDecimal = XmlEventQuery.FromJson(@"{
   ""label"": ""pid-raw"", 
   ""expression"": "":data:ProcessId"",
   ""transforms"": ""unsigned,notempty""
 }");
-      var pidDecimal = queryPidDecimal.Evaluate(dissector, transforms);
+      var pidDecimal = queryPidDecimal.CreateEvaluator(transforms).Evaluate(dissector);
       Assert.Equal("41980", pidDecimal);
     }
 
