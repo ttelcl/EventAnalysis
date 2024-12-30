@@ -33,7 +33,10 @@ namespace Lcl.EventLog.Utilities.Xml
     public static TransformRegistry Default = 
       new TransformRegistry()
       .Register<TrxNotEmpty>()
-      .Register<TrxUnsigned>();
+      .Register<TrxUnsigned>()
+      .Register(TrxStamp.Compact)
+      .Register(TrxStamp.CompactMillis)
+      .Register(TrxStamp.Date);
 
     /// <summary>
     /// Register a previously created XmlFieldTransform instance

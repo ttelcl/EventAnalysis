@@ -3,11 +3,14 @@
   "name": "", // the name of the export job
   "source": "security", // the source job (database)"
   "events": { // per-event output column mapping
+    "*": {
+      "rid": ":common:Rid",
+      "stamp": ":common:Time;time2stamp",
+      "time": ":common:Time",
+      "event": ":common:EventId",
+      "user": ":data:SubjectUserName"
+    },
     "4688": {
-      "rid": ":common:rid",
-      "stamp": ":common:eventstamp",
-      "time": ":common:eventtime",
-      "event": ":common:eventid",
       "pid": "data:NewProcessId;unsigned",
       "name": ":data:NewProcessName",
       "ppid": "data:ProcessId;unsigned",
@@ -15,12 +18,8 @@
       "cmd": ":data:CommandLine"
     },
     "4689": {
-      "rid": ":common:rid",
-      "stamp": ":common:eventstamp",
-      "time": ":common:eventtime",
-      "event": ":common:eventid",
-      "pid": "data:NewProcessId;unsigned",
-      "name": ":data:NewProcessName",
+      "pid": "data:ProcessId;unsigned",
+      "name": ":data:ProcessName",
       "status": "data:Status;unsigned"
     }
   }

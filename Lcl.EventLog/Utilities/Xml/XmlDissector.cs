@@ -63,6 +63,7 @@ namespace Lcl.EventLog.Utilities.Xml
           var prefixKey = parts[1];
           var suffix = parts[2];
           xpath = prefixKey switch {
+            "common" => XpathCommon(suffix),
             "sys" => "/Event/System/" + suffix,
             "data" => DataXpath(suffix),
             "udata" => "/Event/UserData/*/" + suffix,
@@ -72,6 +73,21 @@ namespace Lcl.EventLog.Utilities.Xml
         }
       }
       return (string)CreateNavigator().Evaluate("string(" + xpath + ")");
+    }
+
+    private static string XpathCommon(string key)
+    {
+      return key switch {
+        "Rid" => "/Event/System/EventRecordID",
+        "Provider" => "/Event/System/Provider/@Name",
+        "ProviderGuid" => "/Event/System/Provider/@Guid",
+        "EventId" => "/Event/System/EventID",
+        "Task" => "/Event/System/Task",
+        "Time" => "/Event/System/TimeCreated/@SystemTime",
+        "UserSid" => "/Event/System/Security/@UserID",
+        _ => throw new InvalidOperationException(
+                        $"Unrecognized common expression ':common:{key}'"),
+      };
     }
 
     /// <summary>

@@ -23,11 +23,11 @@ namespace Lcl.EventLog.Utilities.Xml
     /// Create a new XmlExportDescriptor
     /// </summary>
     public XmlExportJob(
-      string jobname,
+      string name,
       IEnumerable<int> events,
       IDictionary<string, ProtoXmlEventQuery> queries)
     {
-      JobName = jobname;
+      Name = name;
       Events = events.ToList().AsReadOnly();
       var q1 = new Dictionary<string, ProtoXmlEventQuery>();
       var q2 = new Dictionary<string, XmlEventQuery>();
@@ -43,8 +43,8 @@ namespace Lcl.EventLog.Utilities.Xml
     /// <summary>
     /// The name for this job
     /// </summary>
-    [JsonProperty("jobname")]
-    public string JobName { get; }
+    [JsonProperty("name")]
+    public string Name { get; }
 
     /// <summary>
     /// The event IDs this export job applies to. Typically only one.

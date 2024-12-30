@@ -88,6 +88,43 @@ public class XmlEventQuery : ProtoXmlEventQuery
   }
 
   /// <summary>
+  /// Parse a query plus transforms from a compact string representation
+  /// </summary>
+  /// <param name="label">
+  /// The label for this query / name for this field
+  /// </param>
+  /// <param name="text">
+  /// The compact string representation of the query, in the form
+  /// "expression;transforms"
+  /// </param>
+  /// <returns></returns>
+  public static XmlEventQuery FromCompactString(string label, string text)
+  {
+    var parts = text.Split(';');
+    if(parts.Length > 2)
+    {
+      throw new InvalidOperationException(
+        "Compact query string must contain at most one semicolon");
+    }
+    var expression = parts[0];
+    var transforms = parts.Length > 1 ? parts[1] : null;
+    return new XmlEventQuery(label, expression, transforms);
+  }
+
+  /// <summary>
+  /// Create a collection of XmlEventQuery objects from a JSON object,
+  /// mapping keys to queries (using the key as the query label)
+  /// </summary>
+  public static IDictionary<string, XmlEventQuery> FromCompactStringMap(
+    string json)
+  {
+    var map = JsonConvert.DeserializeObject<IDictionary<string, string>>(json);
+    return map!.ToDictionary(
+      kvp => kvp.Key,
+      kvp => FromCompactString(kvp.Key, kvp.Value));
+  }
+
+  /// <summary>
   /// The label for this query / name for this field
   /// </summary>
   [JsonProperty("label")]

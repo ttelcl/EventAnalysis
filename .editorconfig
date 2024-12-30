@@ -1,0 +1,10 @@
+﻿[*.cs]
+
+# Disable that stupid WinRT crap
+
+# CsWinRT1029: Class not trimming / AOT compatible
+dotnet_diagnostic.CsWinRT1029.severity = none
+
+dotnet_diagnostic.CsWinRT1028.severity = none
+
+dotnet_diagnostic.CsWinRT1030.severity = none

@@ -177,6 +177,36 @@ namespace UnitTest.Lcl.EventLog
       Assert.Equal("41980", pidDecimal);
     }
 
+    [Fact]
+    public void XmlExportParsing()
+    {
+      var json = @"{
+        ""rid"": "":common:Rid"",
+        ""stamp"": "":common:Time;time2stamp"", 
+        ""time"": "":common:Time"",
+        ""event"": "":common:EventId"",
+        ""pid"": "":data:NewProcessId;unsigned"",
+        ""name"": "":data:NewProcessName"",
+        ""ppid"": "":data:ProcessId;unsigned"",
+        ""ppname"": "":data:ParentProcessName"",
+        ""cmd"": "":data:CommandLine""
+      }"; // TODO: stamp converter
+      var map = XmlEventQuery.FromCompactStringMap(json);
+      Assert.Equal(9, map.Count);
+      var ridQuery = map["rid"];
+      Assert.Equal("rid", ridQuery.Label);
+      var transforms = TransformRegistry.Default;
+      var dissector = new XmlDissector(__sample1);
+      var rid = ridQuery.CreateEvaluator(transforms).Evaluate(dissector);
+      Assert.Equal("6761488", rid);
+      var timeQuery = map["time"];
+      var time = timeQuery.CreateEvaluator(transforms).Evaluate(dissector);
+      Assert.Equal("2022-10-27T17:40:34.3224373Z", time);
+      var stampQuery = map["stamp"];
+      var stamp = stampQuery.CreateEvaluator(transforms).Evaluate(dissector);
+      Assert.Equal("20221027-174034-3224373", stamp);
+    }
+
   }
 }
 
